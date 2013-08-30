@@ -6,50 +6,50 @@ dist=sqrt((x2-x1)^2+(y2-y1)^2)
 return,dist
 end
 
-;Find all delta functions and output the structure
+;Find all delta spots and output a structure
 ;Name   : find_delta
 ;syntax : outstr=find_delta(cfname,mfname,roi=roi)
-;INPUTS : cfname - Continuum fits file name 
+;INPUTS : cfname - Continuum fits file name
 ;	: mfname - Magnetic fits file name
 ;KEYWORDS: ROI - Region of interest in [xcen,ycen,dx,dy]
 ;OUTPUT : A Structure containing following 29 elements
 ;	- CMAP 		: Map of continuum image
 ;	- MMAP 		: Map of Magnetic image
-;	- DLTMAP	: Map of delta forming region umbra and penumbra 
+;	- DLTMAP	: Map of delta forming region umbra and penumbra
 ;	- CINDEX	: Complete index from continuum fits file
 ;	- MINDEX	: Complete index from magnetic fits file
 ;	- wcs		: WCS index (World coordinate system)
 ;	- CFNAME	: Continuum fits filename - input
 ;	- MFNAME	: Magnetic fits filename  - input
 ;	- UMBSELP       : Array giving pixel position of positive umbra
-;	- UMBSELN       : Array giving pixel position of negative umbra  
-;	- PUMBSEL  	: Array giving pixel position of penumbra     
+;	- UMBSELN       : Array giving pixel position of negative umbra
+;	- PUMBSEL  	: Array giving pixel position of penumbra
 ;	- UNBMAX        : Umbra Negative B_LOS maximum value
-;	- UNBMIN        : Umbra Negative B_LOS minimum value  
-;	- UNBMEAN       : Umbra Negative B_LOS mean value   
+;	- UNBMIN        : Umbra Negative B_LOS minimum value
+;	- UNBMEAN       : Umbra Negative B_LOS mean value
 ;	- UPBMAX        : Umbra Positive B_LOS maximum value
 ;	- UPBMIN        : Umbra Positive B_LOS minimum value
 ;	- UPBMEAN	: Umbra Positive B_LOS mean value
-;	- TNEGFLX       : Negative Magnetic Flux in full ROI  
+;	- TNEGFLX       : Negative Magnetic Flux in full ROI
 ;	- TPOSFLX       : Positive Magnetic flux infull ROI
-;	- UNEGFLX       : Negative umbral magnetic flux  
+;	- UNEGFLX       : Negative umbral magnetic flux
 ;	- UPOSFLX       : Positive umbral magnetic flux
-;	- DISTDEG       : Distance between delta-forming umbrae in degrees  
+;	- DISTDEG       : Distance between delta-forming umbrae in degrees
 ;	- NDELTA	: Number of delta spots found
-;	- DLTPPOS       : Order numbers (on size) of positive umbrae forming delta  
+;	- DLTPPOS       : Order numbers (on size) of positive umbrae forming delta
 ;	- DLTNPOS 	: Order numbers (on size) of negative umbrae forming delta
 ;	- DLTUPCEN      : Delta forming positive umbrae centroids
 ;	- DLTUNCEN	: Delta forming negative umbrae centroids
 ;	- DLTUNFLX  	: Negative umbral flux of delta formation
 ;	- DLTUPFLX   	: Positive umbral flux of delta formation
-	
+
 ;EXAMPLES:
 ;	str=find_delta(cfname,mfname)
 ;	plot_map,str.cmap
 ;	plot_map,str.dltmap,/cont,/over
 
 function find_delta,cfname,mfname,roi=inroi
-
+print,systim()
 ;Get the input ROI else find ROI to be used
 
    if n_elements(inroi) ne 0 then begin
@@ -150,8 +150,8 @@ function find_delta,cfname,mfname,roi=inroi
 ;;============== Condition 1 check ==================
 
 ;check largest 10 umbrae of both polarity
-   if max(rankn) ge 10 then sz1=10 else sz1=max(rankn)
-   if max(rankp) ge 10 then sz2=10 else sz2=max(rankp)
+   if max(rankn) ge 30 then sz1=30 else sz1=max(rankn)
+   if max(rankp) ge 30 then sz2=30 else sz2=max(rankp)
 
    wcs=fitshead2wcs(cindex)
    coord=wcs_get_coord(wcs)
@@ -259,6 +259,7 @@ function find_delta,cfname,mfname,roi=inroi
 	str1.uposflx=total(mimg(umbselp))*pxcmsq
 
 outstr=str1
+print,systim()
 return,outstr
 end
 
