@@ -96,7 +96,7 @@ print,systim()
    cqsun=(maxpos+2)*binsize
 ; Normalise Continuum and  umbra selection
    cimgn=cimg/cqsun
-   umbselp=where(mimg ge 500 and cimgn le 0.7)
+   umbselp=where(mimg ge 500 and mimg le 7000 and cimgn le 0.7 and cimgn gt 0.)
    if umbselp[0] eq -1 then begin
 	print,"No Positive polarity umbra in the FOV"
 	return,0
@@ -104,7 +104,7 @@ print,systim()
    mskup=cimg*0.
    mskup[umbselp]=1.
    endelse
-   umbseln=where(mimg le -500 and cimgn le 0.7)
+   umbseln=where(mimg le -500 and mimg ge -7000 and cimgn le 0.7 and cimgn gt 0.)
    if umbseln[0] eq -1 then begin
 	print,"No Negative polarity umbra in the FOV"
 	return,0
@@ -112,7 +112,6 @@ print,systim()
    mskun=cimg*0.
    mskun[umbseln]=1.
    endelse
-
 ;Penumbra selection
 
    pumbsel=where(cimgn le 0.9 and cimgn ge 0.7 and abs(mimg) ge 50 )
@@ -151,7 +150,6 @@ print,systim()
 ;check largest 10 umbrae of both polarity
    if max(rankn) ge 30 then sz1=30 else sz1=max(rankn)
    if max(rankp) ge 30 then sz2=30 else sz2=max(rankp)
-
    wcs=fitshead2wcs(cindex)
    coord=wcs_get_coord(wcs)
    wcs_convert_from_coord,wcs,coord,'hg',lon,lat
@@ -191,7 +189,6 @@ print,systim()
 
 			pfrp=float(size(pop,/dim))/float(size(pep,/dim))
 			pfrn=float(size(pon,/dim))/float(size(pen,/dim))
-			;print,'pfrn == ', pfrn,'PFRP ==',pfrp
 			if (pfrn+pfrp) gt 1.1 and cnt ge 5. then begin
 				deltapos[ii-1,jj-1]=1.
 				cenp[*,ii-1,jj-1]=cenp1 &cenn[*,ii-1,jj-1]=cenn1
