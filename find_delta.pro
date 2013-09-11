@@ -43,6 +43,9 @@
 
 function find_delta,cfname,mfname,roi=inroi
 print,systim()
+
+   distdeg=2.0
+   minusize=10
 ;Get the input ROI else find ROI to be used
 
    if n_elements(inroi) ne 0 then begin
@@ -122,49 +125,54 @@ print,systim()
    mskupl=label_region(mskup)
    unpix=histogram(mskunl,bin=1,loc=unind)
    uppix=histogram(mskupl,bin=1,loc=upind)
-
+   rankn = reverse(unind[sort(unpix)])
+   rankp = reverse(upind[sort(uppix)])
+; Only umbrae larger than minusize is used
+   sz1=max(where(unpix[rankn] ge minusize))
+   sz2=max(where(uppix[rankp] ge minusize))
+   print,sz1,sz2
+   if sz1 eq 0 then begin
+       print," No negative umbra with minium required size"
+       return,0
+   endif
+   if sz2 eq 0 then begin
+       print," No positive umbra with minium required size"
+       return,0
+   endif
+;Ordering the label as per rank
    mskupord=cimg*0.
    mskunord=cimg*0.
-
    ss1=size(unind,/dim)
    for i=0,ss1[0]-1 do begin
-	rankn = reverse(unind[sort(unpix)])
 	mskunord[where(mskunl eq rankn[i])]=i
-
    endfor
    ss2=size(upind,/dim)
    for i=0,ss2[0]-1 do begin
-	rankp = reverse(upind[sort(uppix)])
 	mskupord[where(mskupl eq rankp[i])]=i
-
    endfor
-
 ;;============== Condition 1 check ==================
 
 ;check largest 10 umbrae of both polarity
-   if max(rankn) ge 30 then sz1=30 else sz1=max(rankn)
-   if max(rankp) ge 30 then sz2=30 else sz2=max(rankp)
    wcs=fitshead2wcs(cindex)
    coord=wcs_get_coord(wcs)
    wcs_convert_from_coord,wcs,coord,'hg',lon,lat
-   distdeg=2.0
    deltapos=fltarr(sz1,sz2)
    cenp=fltarr(2,sz1,sz2)
    cenn=fltarr(2,sz1,sz2)
 ;   dist=fltarr(sz1,sz2)
 		mskdelta=cimg*0.
    for ii=1,sz1 do begin
+	mskuns=cimg*0.			;mask umbra positive selected
+	tn=where(mskunord eq ii)
+	if tn[0] eq -1 then continue
+	mskuns(tn)=1.
+	cenn1=centroid(mskuns*mimg)
 	for jj=1,sz2 do begin
-		mskuns=cimg*0.			;mask umbra positive selected
 		mskups=cimg*0.
    		tp=where(mskupord eq jj)
 		if tp[0] eq -1 then continue
 		mskups(tp)=1.
-		tn=where(mskunord eq ii)
-		if tn[0] eq -1 then continue
-		mskuns(tn)=1.
 		cenp1=centroid(mskups*mimg)
-		cenn1=centroid(mskuns*mimg)
 
 		dist1=distcal(lat[cenp1[0],cenp1[1]],lon[cenp1[0],cenp1[1]],lat[cenn1[0],cenn1[1]],lon[cenn1[0],cenn1[1]])
 		if (dist1 le distdeg) then begin
