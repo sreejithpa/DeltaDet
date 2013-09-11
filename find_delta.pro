@@ -27,7 +27,6 @@
 ;	- TPOSFLX       : Positive Magnetic flux infull ROI
 ;	- UNEGFLX       : Negative umbral magnetic flux
 ;	- UPOSFLX       : Positive umbral magnetic flux
-;	- DISTDEG       : Distance between delta-forming umbrae in degrees
 ;	- NDELTA	: Number of delta spots found
 ;	- DLTPPOS       : Order numbers (on size) of positive umbrae forming delta
 ;	- DLTNPOS 	: Order numbers (on size) of negative umbrae forming delta
@@ -46,7 +45,9 @@ print,systim()
 
    distdeg=2.0
    minusize=10
-;Get the input ROI else find ROI to be used
+   expdndelta=30
+
+   ;Get the input ROI else find ROI to be used
 
    if n_elements(inroi) ne 0 then begin
       roi=inroi
@@ -150,12 +151,30 @@ print,systim()
    for i=0,ss2[0]-1 do begin
 	mskupord[where(mskupl eq rankp[i])]=i
    endfor
+mask=intarr(dx,dy)
+       mask[umbseln]=-10
+       mask[umbselp]=10
+       mask[pumbsel]=5
 ;;============== Condition 1 check ==================
 
 ;check largest 10 umbrae of both polarity
    wcs=fitshead2wcs(cindex)
    coord=wcs_get_coord(wcs)
    wcs_convert_from_coord,wcs,coord,'hg',lon,lat
+
+   index2map,cindex,cimg,cmap
+   index2map,mindex,mimg,mmap
+   index2map,mindex,mask,mskmap
+
+   ; OUTPUT STR Def.
+    str1={unbmax:0d, unbmin:0d, unbmean:0d,upbmax:0d, upbmin:0d, upbmean:0d, $
+    tnegflx:0d,tposflx:0d,unegflx:0d, uposflx:0d,$
+    mindex:mindex,cindex:cindex,wcs:wcs,mfname:mfname,cfname:cfname,$
+    ndelta:0d,dltppos:intarr(expdndelta),dltnpos:intarr(expdndelta),$
+    dltupcen:intarr(2,expdndelta),dltuncen:intarr(2,expdndelta),dltunflx:dblarr(expdndelta),$
+    dltupflx:dblarr(expdndelta),cmap:cmap,mmap:mmap,dltmap:cmap,mskmap:mskmap}
+
+
    deltapos=fltarr(sz1,sz2)
    cenp=fltarr(2,sz1,sz2)
    cenn=fltarr(2,sz1,sz2)
@@ -225,26 +244,22 @@ print,systim()
    pxcmsq=cindex.cdelt1*cindex.cdelt2*700e5*700e5
 
    for ii=0,nds-1 do begin
-	dltcenpx[*,ii]=[cenp[0,npos[ii],ppos[ii]],cenp[1,npos[ii],ppos[ii]]]
-	dltcennx[*,ii]=[cenn[0,npos[ii],ppos[ii]],cenn[1,npos[ii],ppos[ii]]]
+	str1.dltupcen[*,ii]=[cenp[0,npos[ii],ppos[ii]],cenp[1,npos[ii],ppos[ii]]]
+	str1.dltuncen[*,ii]=[cenn[0,npos[ii],ppos[ii]],cenn[1,npos[ii],ppos[ii]]]
 ;	cenpdeg[*,ii]=[lat[cenp[0,npos[ii],ppos[ii]],cenp[1,npos[ii],ppos[ii]]],lon[cenp[0,npos[ii],ppos[ii]],cenp[1,npos[ii],ppos[ii]]]]
 ;	cenndeg[*,ii]=[lat[cenn[0,npos[ii],ppos[ii]],cenn[1,npos[ii],ppos[ii]]],lon[cenn[0,npos[ii],ppos[ii]],cenn[1,npos[ii],ppos[ii]]]]
         tp=where(mskupord eq ppos[ii]+1)
 	;if tp[0] eq -1 then continue
 	tn=where(mskunord eq npos[ii]+1)
 	;if tn[0] eq -1 then continue
-	dltunflx[ii]=total(mimg(tn))*pxcmsq
-	dltupflx[ii]=total(mimg(tp))*pxcmsq
+	str1.dltunflx[ii]=total(mimg(tn))*pxcmsq
+	str1.dltupflx[ii]=total(mimg(tp))*pxcmsq
    endfor
-   index2map,cindex,cimg,cmap
-   index2map,mindex,mimg,mmap
    index2map,cindex,mskdelta,deltamap
-   ;Output structure
-    str1={unbmax:0d, unbmin:0d, unbmean:0d,upbmax:0d, upbmin:0d, upbmean:0d, $
-    tnegflx:0d,tposflx:0d,unegflx:0d, uposflx:0d,umbselp:umbselp,$
-    umbseln:umbseln,pumbsel:pumbsel,mindex:mindex,cindex:cindex,wcs:wcs,mfname:mfname,$
-    cfname:cfname,distdeg:distdeg,ndelta:nds,dltppos:ppos,dltnpos:npos,dltupcen:dltcenpx,$
-    dltuncen:dltcennx,dltunflx:dltunflx,dltupflx:dltupflx,cmap:cmap,mmap:mmap,dltmap:deltamap}
+   	str1.dltppos[0:nds-1]=ppos
+   	str1.dltnpos[0:nds-1]=npos
+   	str1.ndelta=nds
+   	str1.dltmap=deltamap
 	str1.unbmax=max(abs(mimg(umbseln)))  ; Max Negative umbrae
 	str1.unbmin=min(abs(mimg(umbseln)))
 	str1.unbmean=mean(abs(mimg(umbseln)))
