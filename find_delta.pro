@@ -9,14 +9,13 @@
 ;	- CMAP 		: Map of continuum image
 ;	- MMAP 		: Map of Magnetic image
 ;	- DLTMAP	: Map of delta forming region umbra and penumbra
+;	- MSKMAP	: Map of mask marking umbra (+/-2 for P/N umbrae and 1
+;			  for penumbra pixels.
 ;	- CINDEX	: Complete index from continuum fits file
 ;	- MINDEX	: Complete index from magnetic fits file
 ;	- wcs		: WCS index (World coordinate system)
 ;	- CFNAME	: Continuum fits filename - input
 ;	- MFNAME	: Magnetic fits filename  - input
-;	- UMBSELP       : Array giving pixel position of positive umbra
-;	- UMBSELN       : Array giving pixel position of negative umbra
-;	- PUMBSEL  	: Array giving pixel position of penumbra
 ;	- UNBMAX        : Umbra Negative B_LOS maximum value
 ;	- UNBMIN        : Umbra Negative B_LOS minimum value
 ;	- UNBMEAN       : Umbra Negative B_LOS mean value
