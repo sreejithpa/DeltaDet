@@ -166,8 +166,8 @@ pxcmsq=cindex.cdelt1*cindex.cdelt2*700e5*700e5
    coord=wcs_get_coord(wcs)
    wcs_convert_from_coord,wcs,coord,'hg',lon,lat
 
-   index2map,cindex,cimg,cmap
-   index2map,mindex,mimg,mmap
+   index2map,cindex,round(cimg),cmap
+   index2map,mindex,float(mimg),mmap
    index2map,cindex,byte(cimg),mskmap
    datasz=size(cimg,/dim)
    imgcenpx=round(datasz/2)-1
