@@ -1,4 +1,5 @@
 
+
 ;Find all delta spots and output a structure
 ;Name   : find_delta
 ;syntax : outstr=find_delta(cfname,mfname,roi=roi)
@@ -8,11 +9,9 @@
 ;OUTPUT : A Structure containing following 29 elements
 ;	- CMAP 		: Map of continuum image
 ;	- MMAP 		: Map of Magnetic image
-;	- DLTMAP	: Map of delta forming region umbra and penumbra
+;	- DLTMAP	: Map of delta forming region umbra
 ;	- MSKMAP	: Map of mask marking umbra (+/-2 for P/N umbrae and 1
 ;			  for penumbra pixels.
-;	- CINDEX	: Complete index from continuum fits file
-;	- MINDEX	: Complete index from magnetic fits file
 ;	- wcs		: WCS index (World coordinate system)
 ;	- CFNAME	: Continuum fits filename - input
 ;	- MFNAME	: Magnetic fits filename  - input
@@ -27,96 +26,203 @@
 ;	- UNEGFLX       : Negative umbral magnetic flux
 ;	- UPOSFLX       : Positive umbral magnetic flux
 ;	- NDELTA	: Number of delta spots found
-;	- DLTPPOS       : Order numbers (on size) of positive umbrae forming delta
-;	- DLTNPOS 	: Order numbers (on size) of negative umbrae forming delta
-;	- DLTUPCEN      : Delta forming positive umbrae centroids
-;	- DLTUNCEN	: Delta forming negative umbrae centroids
+;	- DLTCEN	: Delta forming region center in arc secs
 ;	- DLTUNFLX  	: Negative umbral flux of delta formation
 ;	- DLTUPFLX   	: Positive umbral flux of delta formation
-
+;	-chk		: 0 is failure 1 is success
+;	-Comment	: comments
 ;EXAMPLES:
 ;	str=find_delta(cfname,mfname)
 ;	plot_map,str.cmap
 ;	plot_map,str.dltmap,/cont,/over
 
-function find_delta,cfname,mfname,roi=inroi
-print,systim()
 
-   distdeg=2.0
-   minusize=10
-   expdndelta=30
+function distcal,x1,y1,x2,y2
+	dist=sqrt((x2-x1)^2+(y2-y1)^2)
+return,dist
+end
 
-   ;Get the input ROI else find ROI to be used
-
-   if n_elements(inroi) ne 0 then begin
-      roi=inroi
-      xcen=roi[0] & ycen=roi[1] & dx = roi[2] & dy = roi[3]
-; Read Continuum and Magnetic image
-       read_sdo,cfname,cindex,cimg,/uncomp_delete
-       xyr = [ cindex.crpix1, cindex.crpix2, cindex.rsun_obs/cindex.CDELT1 ]
-       darklimb_correct, cimg, cimg1, lambda = cindex.WAVELNTH, limbxyr = xyr
-       read_sdo,cfname,cindex,cimg,xcen-round(dx/2.),ycen-round(dy/2.),dx,dy,/uncomp_delete
-       cimg=cimg1[xcen-round(dx/2.)-1:xcen-round(dx/2.)-1+dx-1,ycen-round(dy/2.)-1:ycen-round(dy/2.)-1+dy-1]
-       read_sdo,mfname,mindex,mimg,xcen-round(dx/2.),ycen-round(dy/2.),dx,dy,/uncomp_delete
-   endif else begin
-       read_sdo,cfname,cindex,cimg,/uncomp_delete
-       xyr = [ cindex.crpix1, cindex.crpix2, cindex.rsun_obs/cindex.CDELT1 ]
-       darklimb_correct, cimg, cimg1, lambda = cindex.WAVELNTH, limbxyr = xyr
-       cimg=cimg1
-       read_sdo,mfname,mindex,mimg,/uncomp_delete
-   endelse
-
-   if (anytim2tai(cindex.date_obs)-anytim2tai(mindex.date_obs) gt 30 ) then begin
-
-       print,"ERROR:Continuum and Magnetic images are not simultaneous"
-       return,0
-   endif
+;;Function to slelect umbra penumbra from continum and magnetic image
+;; returns a byte array mask with 200 for positive and 50 for negative umbra
+;; and 150 for penumbra pixels and 128 in other pixels
 
 
-   if cindex.crota2 ge 170. then begin
-        cimg=rotate(cimg,2)
-        cindex.crpix1 = cindex.naxis1 - cindex.crpix1 + 1
-        cindex.crpix2 = cindex.naxis2 - cindex.crpix2 + 1
-        cindex.crota2 = cindex.crota2 - 180
-   endif
-
-   if mindex.crota2 ge 170. then begin
-        mimg=rotate(mimg,2)
-        mindex.crpix1 = mindex.naxis1 - mindex.crpix1 + 1
-        mindex.crpix2 = mindex.naxis2 - mindex.crpix2 + 1
-        mindex.crota2 = mindex.crota2 - 180
-    endif
-
+function umbsel,cimg,mimg,uilevel,umlevel,pilevel,pmlevel
+   mask=byte(cimg*0.+128)
 ;Find the Quiet Sun peak from the data
    binsize=max(cimg>0)/100.
    tmp=max(histogram(cimg,min=2*binsize,bin=binsize),maxpos)
    cqsun=(maxpos+2)*binsize
 ; Normalise Continuum and  umbra selection
    cimgn=cimg/cqsun
-   umbselp=where(mimg ge 500 and mimg le 7000 and cimgn le 0.7 and cimgn gt 0.)
-   if umbselp[0] eq -1 then begin
-	print,"No Positive polarity umbra in the FOV"
-	return,0
+;; Selection using levels
+   umbselp=where(mimg ge umlevel[0] and mimg le umlevel[1] and $
+       		cimgn le uilevel[1] and cimgn gt uilevel[0])
+   umbseln=where(mimg le -umlevel[0] and mimg ge -umlevel[1] and $
+       		cimgn le uilevel[1] and cimgn gt uilevel[0])
+   pumbsel=where(abs(mimg) ge pmlevel[0] and abs(mimg) le pmlevel[1] and $
+       		cimgn le pilevel[1] and cimgn gt pilevel[0])
+   if n_elements(umbselp) gt 1 then mask(umbselp)=200
+   if n_elements(umbselp) gt 1 then mask(umbseln)=50
+   if n_elements(umbselp) gt 1 then mask(pumbsel)=150
+return,mask
+end
+
+
+function find_delta,cfname,mfname,roi=inroi,fov=fov,center=center,$
+    		xrange=xrange,yrange=yrange
+print,systim()
+
+   distdeg=2.0		;Distance between opp. polarity umbra (defenition of
+   			;delta condition)
+   minusize=10		; Minimum size of umbra to be considered in pixel
+   expdndelta=30	; Expected number of delta (max 127, using Byte array)
+   uilevel=[0,0.7]	;Intensity levels to choose umbra
+   umlevel=[500,7000]	; Magnetic levels to choose umbra
+   pilevel=[0.7,0.9]	; Intensity levels to choose Penumbra
+   pmlevel=[50,7000]	; Magnetic levels to choose Penumbra
+   pfr=0.6		; penumbra fraction p_obs/p_exp
+   pshare=5		;common penumbra sharing in pixels
+   pesz=10		;size of expected penumbra in pixels
+;Read image limb correction
+       read_sdo,cfname,cindex,cimg,/uncomp_delete
+       xyr = [ cindex.crpix1, cindex.crpix2, cindex.rsun_obs/cindex.CDELT1 ]
+       darklimb_correct, cimg, cimg1, lambda = cindex.WAVELNTH, limbxyr = xyr
+
+pxcmsq=cindex.cdelt1*cindex.cdelt2*700e5*700e5
+   ;Get the input ROI else find ROI to be used
+
+   if n_elements(inroi) eq 4 then roi=inroi else begin
+       if n_elements(fov) ne 0 then begin
+	   if n_elements(center) eq 2 then center1=float(center) $
+           else center1=[cindex.crpix1*cindex.cdelt1,cindex.crpix2*cindex.cdelt2]
+       	   if (cindex.crota2 gt 170) then center1=-1*center1
+           nfov=n_elements(fov)
+           dfov=60.*float([fov(0),fov(nfov-1)])
+           half_fov=dfov/2.
+           xrange1=(([center1(0)-half_fov(0),center1(0)+half_fov(0)])/cindex.cdelt1)+cindex.crpix1
+           yrange1=(([center1(1)-half_fov(1),center1(1)+half_fov(1)])/cindex.cdelt2)+cindex.crpix2
+	   roi=[round((xrange1[0]+xrange1[1])/2.),round((yrange1[0]+yrange1[1])/2.),$
+	      round((xrange1[1]-xrange1[0])+1),round((yrange1[1]-yrange1[0])+1)]
+	   fov=0 & dfov=0 & center=0
+      endif
+      if n_elements(xrange) eq 2 and n_elements(yrange) eq 2 then begin
+	  xrange1=(float(xrange)/cindex.cdelt1)+cindex.crpix1
+          yrange1=(float(yrange)/cindex.cdelt2)+cindex.crpix2
+	  if (cindex.crota2 gt 170) then begin
+	      xrange1=(float(-1*xrange)/cindex.cdelt1)+cindex.crpix1
+              yrange1=(float(-1*yrange)/cindex.cdelt2)+cindex.crpix2
+	  endif
+	   roi=[round((xrange1[0]+xrange1[1])/2.),round((yrange1[0]+yrange1[1])/2.),$
+	      round((xrange1[1]-xrange1[0])+1),round((yrange1[1]-yrange1[0])+1)]
+	  xrange=0 & yrange=0
+      endif
+  endelse
+
+   if n_elements(roi) eq 4 then begin
+      xcen=round(roi[0]) & ycen=round(roi[1]) & dx = round(roi[2]) & dy = round(roi[3])
+      print,roi
+; Read Continuum and Magnetic image
+       read_sdo,cfname,cindex,cimg,xcen-round(dx/2.),ycen-round(dy/2.),dx,dy,/uncomp_delete
+       cimg=cimg1[xcen-round(dx/2.)-1:xcen-round(dx/2.)-1+dx-1,ycen-round(dy/2.)-1:ycen-round(dy/2.)-1+dy-1]
+       read_sdo,mfname,mindex,mimg,xcen-round(dx/2.),ycen-round(dy/2.),dx,dy,/uncomp_delete
    endif else begin
-   mskup=cimg*0.
+       cimg=cimg1
+       read_sdo,mfname,mindex,mimg,/uncomp_delete
+   endelse
+
+   if cindex.crota2 ge 170. then begin
+        cimg=rotate(cimg,2)
+        cindex.crpix1 = cindex.naxis1 - cindex.crpix1 + 1
+        cindex.crpix2 = cindex.naxis2 - cindex.crpix2 + 1
+        cindex.crota2 = cindex.crota2 - 180
+	a=cindex.crota2
+	cindex.xcen=cindex.CRVAL1 + cindex.CDELT1*cos(a)*((cindex.NAXIS1+1)/2 $
+	    	-cindex.CRPIX1) -cindex.CDELT2*sin(a)*((cindex.NAXIS2+1)/2 $
+		-cindex.CRPIX2)
+	cindex.ycen= cindex.CRVAL2 + cindex.CDELT1*sin(a)*((cindex.NAXIS1+1)/2 $
+	    	- cindex.CRPIX1) + cindex.CDELT2*cos(a)*((cindex.NAXIS2+1)/2 $
+		- cindex.CRPIX2)
+
+   endif
+
+   if mindex.crota2 ge 170. then begin
+        mimg=rotate(mimg,2)
+        mindex.crpix1 = mindex.naxis1 - mindex.crpix1 + 1
+        mindex.crpix2 = mindex.naxis2 - mindex.crpix2 + 1
+	mindex.xcen=-mindex.xcen
+	mindex.ycen=-mindex.ycen
+        mindex.crota2 = mindex.crota2 - 180
+	a=mindex.crota2
+	mindex.xcen=mindex.CRVAL1 + mindex.CDELT1*cos(a)*((mindex.NAXIS1+1)/2 $
+	    	-mindex.CRPIX1) -mindex.CDELT2*sin(a)*((mindex.NAXIS2+1)/2 $
+		-mindex.CRPIX2)
+	mindex.ycen= mindex.CRVAL2 + mindex.CDELT1*sin(a)*((mindex.NAXIS1+1)/2 $
+	    	- mindex.CRPIX1) + mindex.CDELT2*cos(a)*((mindex.NAXIS2+1)/2 $
+		- mindex.CRPIX2)
+    endif
+
+   wcs=fitshead2wcs(cindex)
+   coord=wcs_get_coord(wcs)
+   wcs_convert_from_coord,wcs,coord,'hg',lon,lat
+
+   index2map,cindex,cimg,cmap
+   index2map,mindex,mimg,mmap
+   index2map,cindex,byte(cimg),mskmap
+   datasz=size(cimg,/dim)
+   imgcenpx=round(datasz/2)-1
+
+   ; OUTPUT STR Def.
+    str1={unbmax:0d, unbmin:0d, unbmean:0d,upbmax:0d, upbmin:0d, upbmean:0d, $
+    tnegflx:0d,tposflx:0d,unegflx:0d, uposflx:0d,$
+    wcs:wcs,mfname:mfname,cfname:cfname,$
+    ndelta:0d,dltcen:intarr(2,expdndelta),dltunflx:dblarr(expdndelta),$
+    dltupflx:dblarr(expdndelta),cmap:cmap,mmap:mmap,dltmap:mskmap,mskmap:mskmap,$
+    comment:' ',chk:0d }
+
+
+   if (anytim2tai(cindex.date_obs)-anytim2tai(mindex.date_obs) gt 30 ) then begin
+
+       ;print,"ERROR:Continuum and Magnetic images are not simultaneous"
+       str1.comment="ERR:C- M imgs not simultaneous"
+       str1.chk=0
+       return,str1
+   endif
+
+;; Call umbsel function to select umbral and penumbral pixels
+   mask=umbsel(cimg,mimg,uilevel,umlevel,pilevel,pmlevel)
+   str1.mskmap.data=mask
+
+   umbselp=where(mask eq 200)
+   umbseln=where(mask eq 50)
+   pumbsel=where(mask eq 150)
+
+   if umbselp[0] eq -1 then begin
+;	print,"No Positive polarity umbra in the FOV"
+	str1.comment= "No Positive polarity umbra in the FOV"
+        str1.chk=0
+	return,str1
+   endif else begin
+   mskup=float(cimg*0.)
    mskup[umbselp]=1.
    endelse
-   umbseln=where(mimg le -500 and mimg ge -7000 and cimgn le 0.7 and cimgn gt 0.)
    if umbseln[0] eq -1 then begin
-	print,"No Negative polarity umbra in the FOV"
-	return,0
+	;print,"No Negative polarity umbra in the FOV"
+	str1.comment="No Negative polarity umbra in the FOV"
+        str1.chk=0
+	return,str1
    endif else begin
-   mskun=cimg*0.
+   mskun=float(cimg*0.)
    mskun[umbseln]=1.
    endelse
-;Penumbra selection
 
-   pumbsel=where(cimgn le 0.9 and cimgn ge 0.7 and abs(mimg) ge 50 )
    if pumbsel[0] eq -1 then begin
-	print,"No Penumbra in the FOV"
-	return,0
+	;print,"No Penumbra in the FOV"
+	str1.comment="No Penumbra in the FOV"
+        str1.chk=0
+	return,str1
    endif else begin
-        mskp=cimg*0.
+        mskp=float(cimg*0.)
         mskp[pumbsel]=1.
    endelse
 
@@ -132,12 +238,16 @@ print,systim()
    sz2=max(where(uppix[rankp] ge minusize))
    print,sz1,sz2
    if sz1 eq 0 then begin
-       print," No negative umbra with minium required size"
-       return,0
+       ;print," No negative umbra with minium required size"
+       str1.comment=" No negative umbra with minium size"
+        str1.chk=0
+	return,str1
    endif
    if sz2 eq 0 then begin
-       print," No positive umbra with minium required size"
-       return,0
+       str1.comment=" No positive umbra with minium size"
+        str1.chk=0
+	return,str1
+       ;print," No positive umbra with minium required size"
    endif
 ;Ordering the label as per rank
    mskupord=cimg*0.
@@ -150,35 +260,17 @@ print,systim()
    for i=0,ss2[0]-1 do begin
 	mskupord[where(mskupl eq rankp[i])]=i
    endfor
-mask=intarr(dx,dy)
-       mask[umbseln]=-10
-       mask[umbselp]=10
-       mask[pumbsel]=5
 ;;============== Condition 1 check ==================
 
-;check largest 10 umbrae of both polarity
-   wcs=fitshead2wcs(cindex)
-   coord=wcs_get_coord(wcs)
-   wcs_convert_from_coord,wcs,coord,'hg',lon,lat
+;check largest sz1,sz2 umbrae of both polarity
 
-   index2map,cindex,cimg,cmap
-   index2map,mindex,mimg,mmap
-   index2map,mindex,mask,mskmap
-
-   ; OUTPUT STR Def.
-    str1={unbmax:0d, unbmin:0d, unbmean:0d,upbmax:0d, upbmin:0d, upbmean:0d, $
-    tnegflx:0d,tposflx:0d,unegflx:0d, uposflx:0d,$
-    mindex:mindex,cindex:cindex,wcs:wcs,mfname:mfname,cfname:cfname,$
-    ndelta:0d,dltppos:intarr(expdndelta),dltnpos:intarr(expdndelta),$
-    dltupcen:intarr(2,expdndelta),dltuncen:intarr(2,expdndelta),dltunflx:dblarr(expdndelta),$
-    dltupflx:dblarr(expdndelta),cmap:cmap,mmap:mmap,dltmap:cmap,mskmap:mskmap}
-
-
-   deltapos=fltarr(sz1,sz2)
-   cenp=fltarr(2,sz1,sz2)
-   cenn=fltarr(2,sz1,sz2)
-;   dist=fltarr(sz1,sz2)
-		mskdelta=cimg*0.
+;   deltapos=fltarr(sz1,sz2)
+   dp=fltarr(sz2)
+   dn=fltarr(sz1)
+   cenp=fltarr(2,sz2)
+   cenn=fltarr(2,sz1)
+   mskdelta=byte(cimg*0.+128)
+   ndelta=0
    for ii=1,sz1 do begin
 	mskuns=cimg*0.			;mask umbra positive selected
 	tn=where(mskunord eq ii)
@@ -195,10 +287,10 @@ mask=intarr(dx,dy)
 		dist1=distcal(lat[cenp1[0],cenp1[1]],lon[cenp1[0],cenp1[1]],lat[cenn1[0],cenn1[1]],lon[cenn1[0],cenn1[1]])
 		if (dist1 le distdeg) then begin
 
-			mskups1=smooth(mskups,10)
+			mskups1=smooth(mskups,pesz)
 			tmp=where(mskups1 gt 0.)
 			mskups1(tmp)=1.
-			mskuns1=smooth(mskuns,10)
+			mskuns1=smooth(mskuns,pesz)
 			tmp=where(mskuns1 gt 0.)
 			mskuns1(tmp)=1.
 			pop=where((mskups1*mskp) gt 0.)
@@ -209,56 +301,45 @@ mask=intarr(dx,dy)
 
 			pfrp=float(size(pop,/dim))/float(size(pep,/dim))
 			pfrn=float(size(pon,/dim))/float(size(pen,/dim))
-			if (pfrn+pfrp) gt 1.1 and cnt ge 5. then begin
-				deltapos[ii-1,jj-1]=1.
-				cenp[*,ii-1,jj-1]=cenp1 &cenn[*,ii-1,jj-1]=cenn1
-				mskdelta(tp)=2.
-				mskdelta(pop)=1.
-				mskdelta(tn)=-2.
-				mskdelta(pon)=-1.
+			if (pfrn+pfrp) gt pfr*2. and cnt ge pshare then begin
+				if dp[jj-1] eq 0 and dn[ii-1] eq 0 then ndelta++
+				if dn[ii-1] eq 0 then dn[ii-1]=ndelta else $
+				    			dp[jj-1]=dn[ii-1]
+				if dp[jj-1] eq 0 then dp[jj-1]=ndelta else $
+				    			dn[ii-1]=dp[jj-1]
+				;deltapos[ii-1,jj-1]=ndelta  ;only used for debug
+				cenp[*,jj-1]=cenp1
+				cenn[*,ii-1]=cenn1
+				mskdelta(tp)=128+dp[jj-1]
+			;	mskdelta(pop)=150.
+				mskdelta(tn)=128-dn[ii-1]
+			;	mskdelta(pon)=100.
 
 			endif
 
 		endif
    endfor & endfor
 
-   ds=where(deltapos eq 1.)
-   ;number of deltas detected
-   nds=(size(ds,/dim))[0]
-;position of positive and negative umbra forming the delta
-   ppos=round(ds/sz1)& npos= ds-ppos*sz1
-
-
-;centroid of delta forming spots in pixels
-   dltcenpx=fltarr(2,nds)
-   dltcennx=fltarr(2,nds)
-;centroid of delta forming spots in HG lat-long
-;   cenpdeg=fltarr(2,nds)
- ;  cenndeg=fltarr(2,nds)
+ if ndelta ge 1 then begin
 ;Flux of delta forming umbrae
-   dltunflx=fltarr(nds)
-   dltupflx=fltarr(nds)
+   str1.ndelta=ndelta
+   str1.dltmap.data=mskdelta
+;stop
+   for ii=0,ndelta-1 do begin
 
-;px to sqcm conversion
-   pxcmsq=cindex.cdelt1*cindex.cdelt2*700e5*700e5
-
-   for ii=0,nds-1 do begin
-	str1.dltupcen[*,ii]=[cenp[0,npos[ii],ppos[ii]],cenp[1,npos[ii],ppos[ii]]]
-	str1.dltuncen[*,ii]=[cenn[0,npos[ii],ppos[ii]],cenn[1,npos[ii],ppos[ii]]]
-;	cenpdeg[*,ii]=[lat[cenp[0,npos[ii],ppos[ii]],cenp[1,npos[ii],ppos[ii]]],lon[cenp[0,npos[ii],ppos[ii]],cenp[1,npos[ii],ppos[ii]]]]
-;	cenndeg[*,ii]=[lat[cenn[0,npos[ii],ppos[ii]],cenn[1,npos[ii],ppos[ii]]],lon[cenn[0,npos[ii],ppos[ii]],cenn[1,npos[ii],ppos[ii]]]]
-        tp=where(mskupord eq ppos[ii]+1)
-	;if tp[0] eq -1 then continue
-	tn=where(mskunord eq npos[ii]+1)
+  	dp1=where(dp eq ii+1)
+  	dn1=where(dn eq ii+1)
+	dltcenx=mean([reform(cenp[0,dp1]),reform(cenn[0,dn1])])
+	dltceny=mean([reform(cenp[1,dp1]),reform(cenn[1,dn1])])
+	str1.dltcen[0,ii]=cmap.xc+(dltcenx-imgcenpx[0])*cmap.dx	;arc seconds
+	str1.dltcen[1,ii]=cmap.yc+(dltceny-imgcenpx[1])*cmap.dy ;arc seconds
+	tn=where(mskdelta eq 128-(ii+1))
+	tp=where(mskdelta eq 128+(ii+1))
 	;if tn[0] eq -1 then continue
 	str1.dltunflx[ii]=total(mimg(tn))*pxcmsq
 	str1.dltupflx[ii]=total(mimg(tp))*pxcmsq
    endfor
-   index2map,cindex,mskdelta,deltamap
-   	str1.dltppos[0:nds-1]=ppos
-   	str1.dltnpos[0:nds-1]=npos
-   	str1.ndelta=nds
-   	str1.dltmap=deltamap
+ endif
 	str1.unbmax=max(abs(mimg(umbseln)))  ; Max Negative umbrae
 	str1.unbmin=min(abs(mimg(umbseln)))
 	str1.unbmean=mean(abs(mimg(umbseln)))
@@ -269,7 +350,8 @@ mask=intarr(dx,dy)
 	str1.tposflx=total(mimg>0.)*pxcmsq
 	str1.unegflx=total(mimg(umbseln))*pxcmsq
 	str1.uposflx=total(mimg(umbselp))*pxcmsq
-
+	str1.chk=1
+	str1.comment='Successfull- relevent informations are saved in this strcutre'
 outstr=str1
 print,systim()
 return,outstr
