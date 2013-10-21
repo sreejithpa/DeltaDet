@@ -303,10 +303,16 @@ pxcmsq=cindex.cdelt1*cindex.cdelt2*700e5*700e5
 			pfrn=float(size(pon,/dim))/float(size(pen,/dim))
 			if (pfrn+pfrp) gt pfr*2. and cnt ge pshare then begin
 				if dp[jj-1] eq 0 and dn[ii-1] eq 0 then ndelta++
-				if dn[ii-1] eq 0 then dn[ii-1]=ndelta else $
+				;print,'one',ii,jj,dp[jj-1],dn[ii-1],ndelta
+				if dn[ii-1] eq 0 then dn[ii-1]=ndelta else begin
 				    			dp[jj-1]=dn[ii-1]
-				if dp[jj-1] eq 0 then dp[jj-1]=ndelta else $
+							ndelta=dn[ii-1]
+						    endelse
+				if dp[jj-1] eq 0 then dp[jj-1]=ndelta else begin
 				    			dn[ii-1]=dp[jj-1]
+							ndelta=dp[jj-1]
+						    endelse
+				;print,ii,jj,dp[jj-1],dn[ii-1],ndelta
 				;deltapos[ii-1,jj-1]=ndelta  ;only used for debug
 				cenp[*,jj-1]=cenp1
 				cenn[*,ii-1]=cenn1

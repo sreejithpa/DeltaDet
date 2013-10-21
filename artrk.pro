@@ -1,7 +1,7 @@
 ; IDL procedure by Sreejith
 
 ; Start		: 25 Jun 2013 12:24
-; Last Mod 	: 21 Oct 2013 01:59
+; Last Mod 	: 21 Oct 2013 16:02
 
 ;-------------------  Details of the program --------------------------;
 ;PRO delta
@@ -76,6 +76,7 @@ pro artrk,indirc,indirm,ostrarr,$
 	ostrarr[ii]=ostr
 	if (keyword_set(plotmap)) then begin
 	    device,decomposed=0
+	    set_plot,'x'
 	    !p.multi=[0,2,1]
 	    !p.thick=2.5
 	    loadct,0
@@ -91,7 +92,7 @@ pro artrk,indirc,indirm,ostrarr,$
 		    cumap.data(circu)=byte(1)
 		    plot_map,cumap,/over,/cont,c_level=[1],c_color=[20],c_thick=2.5
 		endfor
-		plot_map,strar[ii].dltmap,/over,/cont,levels=[126,127,128,129,130],c_color=[30,30,30,10,10],c_thick=2.0
+		plot_map,ostr.dltmap,/over,/cont,levels=[126,127,128,129,130],c_color=[30,30,30,10,10],c_thick=2.0
 	    endif
 
 	    loadct,0
@@ -107,17 +108,17 @@ pro artrk,indirc,indirm,ostrarr,$
 		    cumap.data(circu)=byte(1)
 		    plot_map,cumap,/over,/cont,c_level=[1],c_color=[20],c_thick=2.5
 		endfor
-		plot_map,strar[ii].dltmap,/over,/cont,levels=[126,127,128,129,130],c_color=[30,30,30,10,10],c_thick=2.0
+		plot_map,ostr.dltmap,/over,/cont,levels=[126,127,128,129,130],c_color=[30,30,30,10,10],c_thick=2.0
 	    endif
 	endif
 
+   endfor
 	if (keyword_set(mkmovie)) then begin
 	    if (keyword_set(movdir)) then dirname=movdir else dirname='DELTMOV'
 	    if (dx/dy le 1.5) then artrk_mkmov,ostrarr,dirname,/hor $
 		else artrk_mkmov,ostrarr,dirname
 	endif
 
-   endfor
 
 if (keyword_set(mkplot)) then begin
 
