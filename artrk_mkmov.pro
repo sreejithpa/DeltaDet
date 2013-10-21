@@ -1,7 +1,7 @@
 ; IDL procedure by Sreejith
 
 ; Start		: 11 Oct 2013 00:44
-; Last Mod 	: 21 Oct 2013 01:59
+; Last Mod 	: 21 Oct 2013 02:55
 
 ;-------------------  Details of the program --------------------------;
 PRO artrk_mkmov,strar,movdir,hor=hor,plotmap=plotmap
@@ -53,9 +53,9 @@ for ii=0,ss[0]-1 do begin
 	    cumap.data=cumap.data*0b
 	    circu=cir_mask(cumap.data,strar[ii].dltcenpx[0,jj],strar[ii].dltcenpx[1,jj],70)
 	    cumap.data(circu)=byte(1)
-	    plot_map,cumap,/over,/cont,c_level=[1],c_color=[20],c_thick=2.5
+	    plot_map,cumap,/over,/cont,c_level=[1],c_color=[20],c_thick=3.5
 	endfor
-	plot_map,strar[ii].dltmap,/over,/cont,levels=[126,127,128,129,130],c_color=[30,30,30,10,10],c_thick=2.0
+	plot_map,strar[ii].dltmap,/over,/cont,levels=[126,127,128,129,130],c_color=[30,30,30,10,10],c_thick=3.0
     endif
     loadct,0
     plot_map,strar[ii].mmap,dmin=-1000,dmax=1000
@@ -68,10 +68,10 @@ tvlct,0,0,255,30
 	    cumap.data=cumap.data*0b
 	    circu=cir_mask(cumap.data,strar[ii].dltcenpx[0,jj],strar[ii].dltcenpx[1,jj],70)
 	    cumap.data(circu)=byte(1)
-	    plot_map,cumap,/over,/cont,c_level=[1],c_color=[20],c_thick=2.5
-	    
+	    plot_map,cumap,/over,/cont,c_level=[1],c_color=[20],c_thick=5.5
+
 	endfor
-	plot_map,strar[ii].dltmap,/over,/cont,levels=[126,127,128,129,130],c_color=[30,30,30,10,10],c_thick=2.0
+	plot_map,strar[ii].dltmap,/over,/cont,levels=[126,127,128,129,130],c_color=[30,30,30,10,10],c_thick=4.0
     endif
     loadct,0
     device,/close
@@ -105,7 +105,7 @@ tvlct,0,0,255,30
 	    circu=cir_mask(cumap.data,strar[ii].dltcenpx[0,jj],strar[ii].dltcenpx[1,jj],70)
 	    cumap.data(circu)=byte(1)
 	    plot_map,cumap,/over,/cont,c_level=[1],c_color=[20],c_thick=2.5
-	    
+
 	endfor
 	plot_map,strar[ii].dltmap,/over,/cont,levels=[126,127,128,129,130],c_color=[30,30,30,10,10],c_thick=1.5
 	wait,1
