@@ -27,6 +27,7 @@
 ;	- UPOSFLX       : Positive umbral magnetic flux
 ;	- NDELTA	: Number of delta spots found
 ;	- DLTCEN	: Delta forming region center in arc secs
+;	- DLTCENpx	: Delta forming region center in pixel
 ;	- DLTUNFLX  	: Negative umbral flux of delta formation
 ;	- DLTUPFLX   	: Positive umbral flux of delta formation
 ;	-chk		: 0 is failure 1 is success
@@ -103,7 +104,7 @@ pxcmsq=cindex.cdelt1*cindex.cdelt2*700e5*700e5
            xrange1=(([center1(0)-half_fov(0),center1(0)+half_fov(0)])/cindex.cdelt1)+cindex.crpix1
            yrange1=(([center1(1)-half_fov(1),center1(1)+half_fov(1)])/cindex.cdelt2)+cindex.crpix2
 	   roi=[round((xrange1[0]+xrange1[1])/2.),round((yrange1[0]+yrange1[1])/2.),$
-	      round((xrange1[1]-xrange1[0])+1),round((yrange1[1]-yrange1[0])+1)]
+	      round((xrange1[1]-xrange1[0])+2),round((yrange1[1]-yrange1[0])+2)]
 	   fov=0 & dfov=0 & center=0
       endif
       if n_elements(xrange) eq 2 and n_elements(yrange) eq 2 then begin
@@ -114,8 +115,7 @@ pxcmsq=cindex.cdelt1*cindex.cdelt2*700e5*700e5
               yrange1=(float(-1*yrange)/cindex.cdelt2)+cindex.crpix2
 	  endif
 	   roi=[round((xrange1[0]+xrange1[1])/2.),round((yrange1[0]+yrange1[1])/2.),$
-	      round((xrange1[1]-xrange1[0])+1),round((yrange1[1]-yrange1[0])+1)]
-	  xrange=0 & yrange=0
+	      abs(round((xrange1[1]-xrange1[0]))),abs(round((yrange1[1]-yrange1[0])))]
       endif
   endelse
 
@@ -176,7 +176,7 @@ pxcmsq=cindex.cdelt1*cindex.cdelt2*700e5*700e5
     str1={unbmax:0d, unbmin:0d, unbmean:0d,upbmax:0d, upbmin:0d, upbmean:0d, $
     tnegflx:0d,tposflx:0d,unegflx:0d, uposflx:0d,$
     wcs:wcs,mfname:mfname,cfname:cfname,$
-    ndelta:0d,dltcen:intarr(2,expdndelta),dltunflx:dblarr(expdndelta),$
+    ndelta:0d,dltcen:fltarr(2,expdndelta),dltcenpx:intarr(2,expdndelta),dltunflx:dblarr(expdndelta),$
     dltupflx:dblarr(expdndelta),cmap:cmap,mmap:mmap,dltmap:mskmap,mskmap:mskmap,$
     comment:' ',chk:0d }
 
@@ -331,6 +331,7 @@ pxcmsq=cindex.cdelt1*cindex.cdelt2*700e5*700e5
   	dn1=where(dn eq ii+1)
 	dltcenx=mean([reform(cenp[0,dp1]),reform(cenn[0,dn1])])
 	dltceny=mean([reform(cenp[1,dp1]),reform(cenn[1,dn1])])
+	str1.dltcenpx[0,ii]=dltcenx & str1.dltcenpx[1,ii]=dltceny
 	str1.dltcen[0,ii]=cmap.xc+(dltcenx-imgcenpx[0])*cmap.dx	;arc seconds
 	str1.dltcen[1,ii]=cmap.yc+(dltceny-imgcenpx[1])*cmap.dy ;arc seconds
 	tn=where(mskdelta eq 128-(ii+1))
