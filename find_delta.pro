@@ -67,9 +67,9 @@ function umbsel,cimg,mimg,uilevel,umlevel,pilevel,pmlevel
        		cimgn le uilevel[1] and cimgn gt uilevel[0])
    pumbsel=where(abs(mimg) ge pmlevel[0] and abs(mimg) le pmlevel[1] and $
        		cimgn le pilevel[1] and cimgn gt pilevel[0])
-   if n_elements(umbselp) gt 1 then mask(umbselp)=200
-   if n_elements(umbselp) gt 1 then mask(umbseln)=50
-   if n_elements(umbselp) gt 1 then mask(pumbsel)=150
+   if n_elements(umbselp) gt 1 and umbselp[0] ne -1 then mask(umbselp)=200
+   if n_elements(umbselp) gt 1 and umbseln[0] ne -1 then mask(umbseln)=50
+   if n_elements(umbselp) gt 1 and pumbsel[0] ne -1 then mask(pumbsel)=150
 return,mask
 end
 
