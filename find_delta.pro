@@ -105,6 +105,9 @@ print,systim()
           mfname=''
        endif
 
+;Determine the pixel -> cm^2 conversion
+pxcmsq=cindex.cdelt1*cindex.cdelt2*700e5*700e5
+
 ;Skip over the initial reading/processing if maps are input instead of filenames
 if doread then begin
 
@@ -115,7 +118,6 @@ if doread then begin
        xyr = [ cindex.crpix1, cindex.crpix2, cindex.rsun_obs/cindex.CDELT1 ]
        darklimb_correct, cimg, cimg1, lambda = cindex.WAVELNTH, limbxyr = xyr
 
-pxcmsq=cindex.cdelt1*cindex.cdelt2*700e5*700e5
    ;Get the input ROI else find ROI to be used
 
    if n_elements(inroi) eq 4 then roi=inroi else begin
