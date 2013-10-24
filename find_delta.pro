@@ -9,7 +9,14 @@
 ;       : If cfname+mfname+[roi] are not input, then the following
 ;       : inputs are required - cimg, cindex, mimg, mindex
 ;
-;KEYWORDS: ROI - Region of interest in [xcen,ycen,dx,dy]
+;KEYWORDS:
+;	 - roi- Region of interest in [xcen,ycen,dx,dy] (Values from
+;		roll-uncorrected image. roll angle correction will be done by the program.)
+;	 - center,fov,xrange,yrange - similar to plot_map (give original values,
+;		from roll corrected map/image
+;	 - cimg,cindex,mimg,mindex - data images and index structures, if
+;		included the program will use this and won't look for file to read. 
+
 ;OUTPUT : A Structure containing following 29 elements
 ;	- CMAP 		: Map of continuum image
 ;	- MMAP 		: Map of Magnetic image
