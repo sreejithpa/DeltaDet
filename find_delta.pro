@@ -67,15 +67,10 @@ function umbsel,cimg,mimg,uilevel,umlevel,pilevel,pmlevel
        		cimgn le uilevel[1] and cimgn gt uilevel[0])
    pumbsel=where(abs(mimg) ge pmlevel[0] and abs(mimg) le pmlevel[1] and $
        		cimgn le pilevel[1] and cimgn gt pilevel[0])
-<<<<<<< HEAD
-   if n_elements(umbselp) gt 1 then mask(umbselp)=200
-   if n_elements(umbseln) gt 1 then mask(umbseln)=50
-   if n_elements(pumbsel) gt 1 then mask(pumbsel)=150
-=======
+   
    if n_elements(umbselp) gt 1 and umbselp[0] ne -1 then mask(umbselp)=200
    if n_elements(umbselp) gt 1 and umbseln[0] ne -1 then mask(umbseln)=50
    if n_elements(umbselp) gt 1 and pumbsel[0] ne -1 then mask(pumbsel)=150
->>>>>>> 99e416cc03b3029d5196b92dd4200ee7e160d535
 return,mask
 end
 
@@ -120,11 +115,11 @@ print,systim()
 ;Read continuum image
         read_sdo,cfname,cindex,cimg,/uncomp_delete
 ;Do limb correction
-    
+
         xyr = [ cindex.crpix1, cindex.crpix2, cindex.rsun_obs/cindex.CDELT1 ]
            darklimb_correct, cimg, cimg1, lambda = cindex.WAVELNTH, limbxyr = xyr
     ;Get the input ROI else find ROI to be used
-    
+
         if n_elements(inroi) eq 4 then roi=inroi else begin
 	    if n_elements(fov) ne 0 then begin
 	        if n_elements(center) eq 2 then center1=float(center) $
@@ -173,7 +168,7 @@ print,systim()
 
 ; Read Magnetic image
 ;       if domread then read_sdo,mfname,mindex,mimg,/uncomp_delete
-;Note by Sr: This is already in side doread check, hence commenting above line 
+;Note by Sr: This is already in side doread check, hence commenting above line
       	    read_sdo,mfname,mindex,mimg,/uncomp_delete
         endelse
         if (anytim2tai(cindex.date_obs)-anytim2tai(mindex.date_obs) gt 30 ) then begin
