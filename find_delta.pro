@@ -15,7 +15,7 @@
 ;	 - center,fov,xrange,yrange - similar to plot_map (give original values,
 ;		from roll corrected map/image
 ;	 - cimg,cindex,mimg,mindex - data images and index structures, if
-;		included the program will use this and won't look for file to read. 
+;		included the program will use this and won't look for file to read.
 
 ;OUTPUT : A Structure containing following 29 elements
 ;	- CMAP 		: Map of continuum image
@@ -74,7 +74,7 @@ function umbsel,cimg,mimg,uilevel,umlevel,pilevel,pmlevel
        		cimgn le uilevel[1] and cimgn gt uilevel[0])
    pumbsel=where(abs(mimg) ge pmlevel[0] and abs(mimg) le pmlevel[1] and $
        		cimgn le pilevel[1] and cimgn gt pilevel[0])
-   
+
    if n_elements(umbselp) gt 1 and umbselp[0] ne -1 then mask(umbselp)=200
    if n_elements(umbselp) gt 1 and umbseln[0] ne -1 then mask(umbseln)=50
    if n_elements(umbselp) gt 1 and pumbsel[0] ne -1 then mask(pumbsel)=150
@@ -113,8 +113,6 @@ print,systim()
           mfname=''
        endif
 
-;Determine the pixel -> cm^2 conversion
-    pxcmsq=cindex.cdelt1*cindex.cdelt2*700e5*700e5
 
 ;Skip over the initial reading/processing if maps are input instead of filenames
     if doread then begin
@@ -157,7 +155,7 @@ print,systim()
         if n_elements(roi) eq 4 then begin
 	    xcen=round(roi[0]) & ycen=round(roi[1]) & dx = round(roi[2]) & dy = round(roi[3])
 
-; Read Continuum image (again??)
+; Read Continuum image - only FOV region (again??)
 ;NOTE: you have already read-in the CIMG above. Why are you doing it again??
 ;	--Answer to the NOTE: It was done initially, so that index file keywords are
 ;	automatically updated with selected FOV info. Can be avoided by manually
@@ -167,15 +165,12 @@ print,systim()
 ;Take sub image from limb-dark corrected image
        	    cimg=cimg1[xcen-round(dx/2.)-1:xcen-round(dx/2.)-1+dx-1,ycen-round(dy/2.)-1:ycen-round(dy/2.)-1+dy-1]
 
-; Read Magnetic image
+; Read Magnetic image - only FOV region
        	    read_sdo,mfname,mindex,mimg,xcen-round(dx/2.),ycen-round(dy/2.),dx,dy,/uncomp_delete
 
         endif else begin
-	    cimg=cimg1
-
-; Read Magnetic image
-;       if domread then read_sdo,mfname,mindex,mimg,/uncomp_delete
-;Note by Sr: This is already in side doread check, hence commenting above line
+	    cimg=cimg1  ; Full disk
+; Read Magnetic image - Full disk
       	    read_sdo,mfname,mindex,mimg,/uncomp_delete
         endelse
         if (anytim2tai(cindex.date_obs)-anytim2tai(mindex.date_obs) gt 30 ) then begin
@@ -215,6 +210,8 @@ print,systim()
     	endif
 
     endif
+;Determine the pixel -> cm^2 conversion
+    pxcmsq=cindex.cdelt1*cindex.cdelt2*700e5*700e5
 
     wcs=fitshead2wcs(cindex)
     coord=wcs_get_coord(wcs)
