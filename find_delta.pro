@@ -281,9 +281,9 @@ print,systim()
 ; Only umbrae larger than minusize is used
     szn=max(where(unpix[rankn] ge minusize))
     szp=max(where(uppix[rankp] ge minusize))
-       dbstr.up=szp
-       dbstr.un=szn
-	
+       str1.dbstr.up=szp
+       str1.dbstr.un=szn
+
     if szn eq 0 then begin
 	;print," No negative umbra with minium required size"
         str1.comment=" No negative umbra with minium size"
@@ -356,8 +356,8 @@ print,systim()
 			pfrar1[ii-1,jj-1]=(pfrn+pfrp)/2.
 			if (pfrn+pfrp) gt pfr*2. and cnt ge pshare then begin
 			   ; print,'one',ii,jj,dp[jj-1],dn[ii-1],ndelta
-			    
-			    if dp[jj-1] eq 0 and dn[ii-1] eq 0 then begin 
+
+			    if dp[jj-1] eq 0 and dn[ii-1] eq 0 then begin
 				ndelta++
 				dp[jj-1]=ndelta
 				dn[ii-1]=ndelta
@@ -392,11 +392,11 @@ print,systim()
    endfor & endfor
 
    if szn lt 200 and szp lt 200 then begin
-       dbstr.dltpos[0:szn-1,0:szp-1]=deltapos[*,*]
-       dbstr.uppos[*,0:szp-1]=cenp[*,*]
-       dbstr.unpos[*,0:szn-1]=cenn[*,*]
-       dbstr.distar[0:szn-1,0:szp-1]=distar1[*,*]
-       dbstr.pfrar[0:szn-1,0:szp-1]=pfrar1[*,*]
+       str1.dbstr.dltpos[0:szn-1,0:szp-1]=deltapos[*,*]
+       str1.dbstr.uppos[*,0:szp-1]=cenp[*,*]
+       str1.dbstr.unpos[*,0:szn-1]=cenn[*,*]
+       str1.dbstr.distar[0:szn-1,0:szp-1]=distar1[*,*]
+       str1.dbstr.pfrar[0:szn-1,0:szp-1]=pfrar1[*,*]
    endif
 
  if ndelta ge 1 then begin
