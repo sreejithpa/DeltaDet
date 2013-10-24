@@ -43,6 +43,8 @@
 ;	- DLTUPFLX   	: Positive umbral flux of delta formation
 ;	-chk		: 0 is failure 1 is success
 ;	-Comment	: comments
+;	-dbstr		: a structure used for de-bugging - meant for
+;				developers.
 ;EXAMPLES:
 ;	str=find_delta(cfname,mfname)
 ;	plot_map,str.cmap
@@ -222,14 +224,16 @@ print,systim()
      index2map,cindex,byte(cimg),mskmap
      datasz=size(cimg,/dim)
      imgcenpx=round(datasz/2)-1
-
+     ;Structure that gives database of umbra satisfying condition one and two.
+     dbstr={up:0d,un:0d,dltpos:bytarr(200,200),distar:fltarr(200,200),pfrar:fltarr(200,200),$
+	 uppos:fltarr(2,200),unpos:fltarr(2,200)}
      ; OUTPUT STR Def.
       str1={unbmax:0d, unbmin:0d, unbmean:0d,upbmax:0d, upbmin:0d, upbmean:0d, $
         tnegflx:0d,tposflx:0d,unegflx:0d, uposflx:0d,$
         wcs:wcs,mfname:mfname,cfname:cfname,$
 	ndelta:0d,dltcen:fltarr(2,expdndelta),dltcenpx:intarr(2,expdndelta),dltunflx:dblarr(expdndelta),$
 	dltupflx:dblarr(expdndelta),cmap:cmap,mmap:mmap,dltmap:mskmap,mskmap:mskmap,$
-    	comment:' ',chk:0d }
+    	comment:' ',chk:0d,dbstr:dbstr}
 
 ;; Call umbsel function to select umbral and penumbral pixels
     mask=umbsel(cimg,mimg,uilevel,umlevel,pilevel,pmlevel)
@@ -275,16 +279,18 @@ print,systim()
     rankn = reverse(unind[sort(unpix)])
     rankp = reverse(upind[sort(uppix)])
 ; Only umbrae larger than minusize is used
-    sz1=max(where(unpix[rankn] ge minusize))
-    sz2=max(where(uppix[rankp] ge minusize))
-    print,sz1,sz2
-    if sz1 eq 0 then begin
+    szn=max(where(unpix[rankn] ge minusize))
+    szp=max(where(uppix[rankp] ge minusize))
+       dbstr.up=szp
+       dbstr.un=szn
+	
+    if szn eq 0 then begin
 	;print," No negative umbra with minium required size"
         str1.comment=" No negative umbra with minium size"
         str1.chk=0
 	return,str1
     endif
-    if sz2 eq 0 then begin
+    if szp eq 0 then begin
         str1.comment=" No positive umbra with minium size"
         str1.chk=0
 	return,str1
@@ -303,31 +309,36 @@ print,systim()
    endfor
 ;;============== Condition 1 check ==================
 
-;check largest sz1,sz2 umbrae of both polarity
+;check largest szn,szp umbrae of both polarity
 
-;   deltapos=fltarr(sz1,sz2)
-   dp=fltarr(sz2)
-   dn=fltarr(sz1)
-   cenp=fltarr(2,sz2)
-   cenn=fltarr(2,sz1)
+   deltapos=bytarr(szn,szp)
+   distar1=fltarr(szn,szp)
+   pfrar1=fltarr(szn,szp)
+   dp=fltarr(szp)
+   dn=fltarr(szn)
+   cenp=fltarr(2,szp)
+   cenn=fltarr(2,szn)
    mskdelta=byte(cimg*0.+128)
    ndelta=0
-   for ii=1,sz1 do begin
+   for ii=1,szn do begin
 	mskuns=cimg*0.			;mask umbra positive selected
 	tn=where(mskunord eq ii)
 	if tn[0] eq -1 then continue
 	mskuns(tn)=1.
 	cenn1=centroid(mskuns*mimg)
-	for jj=1,sz2 do begin
+	for jj=1,szp do begin
 		mskups=cimg*0.
    		tp=where(mskupord eq jj)
 		if tp[0] eq -1 then continue
 		mskups(tp)=1.
 		cenp1=centroid(mskups*mimg)
-
+		cenp[*,jj-1]=cenp1
+		cenn[*,ii-1]=cenn1
 		dist1=distcal(lat[cenp1[0],cenp1[1]],lon[cenp1[0],cenp1[1]],lat[cenn1[0],cenn1[1]],lon[cenn1[0],cenn1[1]])
+		distar1[ii-1,jj-1]=dist1
 		if (dist1 le distdeg) then begin
 
+			deltapos[ii-1,jj-1]=1  ;Condition -1 Satisfied
 			mskups1=smooth(mskups,pesz)
 			tmp=where(mskups1 gt 0.)
 			mskups1(tmp)=1.
@@ -342,30 +353,51 @@ print,systim()
 
 			pfrp=float(size(pop,/dim))/float(size(pep,/dim))
 			pfrn=float(size(pon,/dim))/float(size(pen,/dim))
+			pfrar1[ii-1,jj-1]=(pfrn+pfrp)/2.
 			if (pfrn+pfrp) gt pfr*2. and cnt ge pshare then begin
-				if dp[jj-1] eq 0 and dn[ii-1] eq 0 then ndelta++
-				;print,'one',ii,jj,dp[jj-1],dn[ii-1],ndelta
-				if dn[ii-1] eq 0 then dn[ii-1]=ndelta else begin
-				    			dp[jj-1]=dn[ii-1]
-							ndelta=dn[ii-1]
-						    endelse
-				if dp[jj-1] eq 0 then dp[jj-1]=ndelta else begin
-				    			dn[ii-1]=dp[jj-1]
-							ndelta=dp[jj-1]
-						    endelse
-				;print,ii,jj,dp[jj-1],dn[ii-1],ndelta
-				;deltapos[ii-1,jj-1]=ndelta  ;only used for debug
-				cenp[*,jj-1]=cenp1
-				cenn[*,ii-1]=cenn1
-				mskdelta(tp)=128+dp[jj-1]
-			;	mskdelta(pop)=150.
-				mskdelta(tn)=128-dn[ii-1]
-			;	mskdelta(pon)=100.
+			   ; print,'one',ii,jj,dp[jj-1],dn[ii-1],ndelta
+			    
+			    if dp[jj-1] eq 0 and dn[ii-1] eq 0 then begin 
+				ndelta++
+				dp[jj-1]=ndelta
+				dn[ii-1]=ndelta
+		;		print,'two',ii,jj,dp[jj-1],dn[ii-1],ndelta
+	    		    endif else begin
+				mndlt=min([dp[jj-1],dn[ii-1]])
+				mxdlt=max([dp[jj-1],dn[ii-1]])
+				if dp[jj-1] eq 0. or dn[ii-1] eq 0 then begin
+				    dp[jj-1]=mxdlt
+			            dn[ii-1]=mxdlt
+				endif else begin
+				    if dp[jj-1] ne dn[ii-1] then ndelta=ndelta-1
+				    dp[jj-1]=mndlt
+				    dn[ii-1]=mndlt
+				    tmp=where(dp eq mxdlt)
+			            if tmp[0] ne -1 then dp[tmp]=mndlt
+				    tmp=where(dn eq mxdlt)
+			            if tmp[0] ne -1 then dn[tmp]=mndlt
+				endelse
+		;		print,'thre',ii,jj,dp[jj-1],dn[ii-1],ndelta
+	    		    endelse
+		;		print,'four',ii,jj,dp[jj-1],dn[ii-1],ndelta
+			    deltapos[ii-1,jj-1]=2  ;Condition 2 satisfied
+			    mskdelta(tp)=128+dp[jj-1]
+			;   mskdelta(pop)=150.
+			    mskdelta(tn)=128-dn[ii-1]
+			;   mskdelta(pon)=100.
 
 			endif
 
 		endif
    endfor & endfor
+
+   if szn lt 200 and szp lt 200 then begin
+       dbstr.dltpos[0:szn-1,0:szp-1]=deltapos[*,*]
+       dbstr.uppos[*,0:szp-1]=cenp[*,*]
+       dbstr.unpos[*,0:szn-1]=cenn[*,*]
+       dbstr.distar[0:szn-1,0:szp-1]=distar1[*,*]
+       dbstr.pfrar[0:szn-1,0:szp-1]=pfrar1[*,*]
+   endif
 
  if ndelta ge 1 then begin
 ;Flux of delta forming umbrae
