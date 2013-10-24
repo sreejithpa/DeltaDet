@@ -142,7 +142,6 @@ print,systim()
 	        fov=0 & dfov=0 & center=0
 	    endif
 	    if n_elements(xrange) eq 2 and n_elements(yrange) eq 2 then begin
-	        print,'range1=',xrange,yrange
 	        xrange1=(float(xrange)/cindex.cdelt1)+cindex.crpix1
                 yrange1=(float(yrange)/cindex.cdelt2)+cindex.crpix2
 	        if (cindex.crota2 gt 175 and cindex.crota2 le 185) then begin
