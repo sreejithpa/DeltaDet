@@ -5,6 +5,10 @@
 ;syntax : outstr=find_delta(cfname,mfname,roi=roi)
 ;INPUTS : cfname - Continuum fits file name
 ;	: mfname - Magnetic fits file name
+;
+;       : If cfname+mfname+[roi] are not input, then the following
+;       : inputs are required - cimg, cindex, mimg, mindex
+;
 ;KEYWORDS: ROI - Region of interest in [xcen,ycen,dx,dy]
 ;OUTPUT : A Structure containing following 29 elements
 ;	- CMAP 		: Map of continuum image
@@ -63,15 +67,22 @@ function umbsel,cimg,mimg,uilevel,umlevel,pilevel,pmlevel
        		cimgn le uilevel[1] and cimgn gt uilevel[0])
    pumbsel=where(abs(mimg) ge pmlevel[0] and abs(mimg) le pmlevel[1] and $
        		cimgn le pilevel[1] and cimgn gt pilevel[0])
+<<<<<<< HEAD
    if n_elements(umbselp) gt 1 then mask(umbselp)=200
    if n_elements(umbseln) gt 1 then mask(umbseln)=50
    if n_elements(pumbsel) gt 1 then mask(pumbsel)=150
+=======
+   if n_elements(umbselp) gt 1 and umbselp[0] ne -1 then mask(umbselp)=200
+   if n_elements(umbselp) gt 1 and umbseln[0] ne -1 then mask(umbseln)=50
+   if n_elements(umbselp) gt 1 and pumbsel[0] ne -1 then mask(pumbsel)=150
+>>>>>>> 99e416cc03b3029d5196b92dd4200ee7e160d535
 return,mask
 end
 
 
 function find_delta,cfname,mfname,roi=inroi,fov=fov,center=center,$
-    		xrange=xrange,yrange=yrange
+    		xrange=xrange,yrange=yrange, $
+                cimg=incimg, cindex=incindex, mimg=inmimg, mindex=inmindex
 print,systim()
 
    distdeg=2.0		;Distance between opp. polarity umbra (defenition of
@@ -85,12 +96,34 @@ print,systim()
    pfr=0.6		; penumbra fraction p_obs/p_exp
    pshare=5		;common penumbra sharing in pixels
    pesz=10		;size of expected penumbra in pixels
-;Read image limb correction
+
+;Determine if filename or image+index is to be used as input
+       if n_elements(cfname) eq 1 and n_elements(mfname) eq 1 then doread=1 else doread=0
+       if doread then print,'DOREAD=1: Using Mag. and Int. filenames as input' else print,'DOREAD=0: Using image arrays, indexes, and coord arrays as input' 
+
+;Rename input variables if no filenames supplied
+       if not doread then begin
+          cimg=incimg
+          cindex=incindex
+          cfname=''
+          mimg=inmimg
+          mindex=inmindex
+          mfname=''
+       endif
+
+;Determine the pixel -> cm^2 conversion
+pxcmsq=cindex.cdelt1*cindex.cdelt2*700e5*700e5
+
+;Skip over the initial reading/processing if maps are input instead of filenames
+if doread then begin
+
+;Read continuum image       
        read_sdo,cfname,cindex,cimg,/uncomp_delete
+
+;Do limb correction
        xyr = [ cindex.crpix1, cindex.crpix2, cindex.rsun_obs/cindex.CDELT1 ]
        darklimb_correct, cimg, cimg1, lambda = cindex.WAVELNTH, limbxyr = xyr
 
-pxcmsq=cindex.cdelt1*cindex.cdelt2*700e5*700e5
    ;Get the input ROI else find ROI to be used
 
    if n_elements(inroi) eq 4 then roi=inroi else begin
@@ -124,13 +157,22 @@ print,'rang2=',xrange1, yrange1
    if n_elements(roi) eq 4 then begin
       xcen=round(roi[0]) & ycen=round(roi[1]) & dx = round(roi[2]) & dy = round(roi[3])
       print,roi
-; Read Continuum and Magnetic image
+
+; Read Continuum image (again??)
+;NOTE: you have already read-in the CIMG above. Why are you doing it again??
        read_sdo,cfname,cindex,cimg,xcen-round(dx/2.),ycen-round(dy/2.),dx,dy,/uncomp_delete
+
+;Take sub image from limb-dark corrected image
        cimg=cimg1[xcen-round(dx/2.)-1:xcen-round(dx/2.)-1+dx-1,ycen-round(dy/2.)-1:ycen-round(dy/2.)-1+dy-1]
+
+; Read Magnetic image
        read_sdo,mfname,mindex,mimg,xcen-round(dx/2.),ycen-round(dy/2.),dx,dy,/uncomp_delete
+
    endif else begin
        cimg=cimg1
-       read_sdo,mfname,mindex,mimg,/uncomp_delete
+
+; Read Magnetic image
+       if domread then read_sdo,mfname,mindex,mimg,/uncomp_delete
    endelse
    if (anytim2tai(cindex.date_obs)-anytim2tai(mindex.date_obs) gt 30 ) then begin
 
@@ -170,6 +212,8 @@ print,'rang2=',xrange1, yrange1
 		- mindex.CRPIX2)
 	   
     endif
+
+endif
 
    wcs=fitshead2wcs(cindex)
    coord=wcs_get_coord(wcs)
