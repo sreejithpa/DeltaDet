@@ -99,7 +99,7 @@ print,systim()
 
 ;Determine if filename or image+index is to be used as input
        if n_elements(cfname) eq 1 and n_elements(mfname) eq 1 then doread=1 else doread=0
-       if doread then print,'DOREAD=1: Using Mag. and Int. filenames as input' else print,'DOREAD=0: Using image arrays, indexes, and coord arrays as input' 
+       if doread then print,'DOREAD=1: Using Mag. and Int. filenames as input' else print,'DOREAD=0: Using image arrays, indexes, and coord arrays as input'
 
 ;Rename input variables if no filenames supplied
        if not doread then begin
@@ -112,189 +112,185 @@ print,systim()
        endif
 
 ;Determine the pixel -> cm^2 conversion
-pxcmsq=cindex.cdelt1*cindex.cdelt2*700e5*700e5
+    pxcmsq=cindex.cdelt1*cindex.cdelt2*700e5*700e5
 
 ;Skip over the initial reading/processing if maps are input instead of filenames
-if doread then begin
+    if doread then begin
 
-;Read continuum image       
-       read_sdo,cfname,cindex,cimg,/uncomp_delete
-
+;Read continuum image
+        read_sdo,cfname,cindex,cimg,/uncomp_delete
 ;Do limb correction
-       xyr = [ cindex.crpix1, cindex.crpix2, cindex.rsun_obs/cindex.CDELT1 ]
-       darklimb_correct, cimg, cimg1, lambda = cindex.WAVELNTH, limbxyr = xyr
+    
+        xyr = [ cindex.crpix1, cindex.crpix2, cindex.rsun_obs/cindex.CDELT1 ]
+           darklimb_correct, cimg, cimg1, lambda = cindex.WAVELNTH, limbxyr = xyr
+    ;Get the input ROI else find ROI to be used
+    
+        if n_elements(inroi) eq 4 then roi=inroi else begin
+	    if n_elements(fov) ne 0 then begin
+	        if n_elements(center) eq 2 then center1=float(center) $
+		  else center1=[cindex.crpix1*cindex.cdelt1,cindex.crpix2*cindex.cdelt2]
+	        if (cindex.crota2 gt 170) then center1=-1*center1
+	        nfov=n_elements(fov)
+                dfov=60.*float([fov(0),fov(nfov-1)])
+                half_fov=dfov/2.
+                xrange1=(([center1(0)-half_fov(0),center1(0)+half_fov(0)])/cindex.cdelt1)+cindex.crpix1
+                yrange1=(([center1(1)-half_fov(1),center1(1)+half_fov(1)])/cindex.cdelt2)+cindex.crpix2
+	        roi=[round((xrange1[0]+xrange1[1])/2.),round((yrange1[0]+yrange1[1])/2.),$
+	          round((xrange1[1]-xrange1[0])+2),round((yrange1[1]-yrange1[0])+2)]
+	        fov=0 & dfov=0 & center=0
+	    endif
+	    if n_elements(xrange) eq 2 and n_elements(yrange) eq 2 then begin
+	        print,'range1=',xrange,yrange
+	        xrange1=(float(xrange)/cindex.cdelt1)+cindex.crpix1
+                yrange1=(float(yrange)/cindex.cdelt2)+cindex.crpix2
+	        if (cindex.crota2 gt 175 and cindex.crota2 le 185) then begin
+		    xrange1=(float(-1*xrange)/cindex.cdelt1)+cindex.crpix1
+		    yrange1=(float(-1*yrange)/cindex.cdelt2)+cindex.crpix2
+	        endif
+	        roi=[round((xrange1[0]+xrange1[1])/2.),round((yrange1[0]+yrange1[1])/2.),$
+	          abs(round((xrange1[1]-xrange1[0]))),abs(round((yrange1[1]-yrange1[0])))]
+            endif
+        endelse
 
-   ;Get the input ROI else find ROI to be used
-
-   if n_elements(inroi) eq 4 then roi=inroi else begin
-       if n_elements(fov) ne 0 then begin
-	   if n_elements(center) eq 2 then center1=float(center) $
-           else center1=[cindex.crpix1*cindex.cdelt1,cindex.crpix2*cindex.cdelt2]
-       	   if (cindex.crota2 gt 170) then center1=-1*center1
-           nfov=n_elements(fov)
-           dfov=60.*float([fov(0),fov(nfov-1)])
-           half_fov=dfov/2.
-           xrange1=(([center1(0)-half_fov(0),center1(0)+half_fov(0)])/cindex.cdelt1)+cindex.crpix1
-           yrange1=(([center1(1)-half_fov(1),center1(1)+half_fov(1)])/cindex.cdelt2)+cindex.crpix2
-	   roi=[round((xrange1[0]+xrange1[1])/2.),round((yrange1[0]+yrange1[1])/2.),$
-	      round((xrange1[1]-xrange1[0])+2),round((yrange1[1]-yrange1[0])+2)]
-	   fov=0 & dfov=0 & center=0
-      endif
-      if n_elements(xrange) eq 2 and n_elements(yrange) eq 2 then begin
-	  print,'range1=',xrange,yrange
-	  xrange1=(float(xrange)/cindex.cdelt1)+cindex.crpix1
-          yrange1=(float(yrange)/cindex.cdelt2)+cindex.crpix2
-	  if (cindex.crota2 gt 170) then begin
-	      xrange1=(float(-1*xrange)/cindex.cdelt1)+cindex.crpix1
-              yrange1=(float(-1*yrange)/cindex.cdelt2)+cindex.crpix2
-	  endif
-	   roi=[round((xrange1[0]+xrange1[1])/2.),round((yrange1[0]+yrange1[1])/2.),$
-	      abs(round((xrange1[1]-xrange1[0]))),abs(round((yrange1[1]-yrange1[0])))]
-      endif
-  endelse
-print,'rang2=',xrange1, yrange1
-
-   if n_elements(roi) eq 4 then begin
-      xcen=round(roi[0]) & ycen=round(roi[1]) & dx = round(roi[2]) & dy = round(roi[3])
-      print,roi
+        if n_elements(roi) eq 4 then begin
+	    xcen=round(roi[0]) & ycen=round(roi[1]) & dx = round(roi[2]) & dy = round(roi[3])
 
 ; Read Continuum image (again??)
 ;NOTE: you have already read-in the CIMG above. Why are you doing it again??
-       read_sdo,cfname,cindex,cimg,xcen-round(dx/2.),ycen-round(dy/2.),dx,dy,/uncomp_delete
+;	--Answer to the NOTE: It was done initially, so that index file keywords are
+;	automatically updated with selected FOV info. Can be avoided by manually
+;	changing the respective index keywords. Will do that in next version.
+       	    read_sdo,cfname,cindex,cimg,xcen-round(dx/2.),ycen-round(dy/2.),dx,dy,/uncomp_delete
 
 ;Take sub image from limb-dark corrected image
-       cimg=cimg1[xcen-round(dx/2.)-1:xcen-round(dx/2.)-1+dx-1,ycen-round(dy/2.)-1:ycen-round(dy/2.)-1+dy-1]
+       	    cimg=cimg1[xcen-round(dx/2.)-1:xcen-round(dx/2.)-1+dx-1,ycen-round(dy/2.)-1:ycen-round(dy/2.)-1+dy-1]
 
 ; Read Magnetic image
-       read_sdo,mfname,mindex,mimg,xcen-round(dx/2.),ycen-round(dy/2.),dx,dy,/uncomp_delete
+       	    read_sdo,mfname,mindex,mimg,xcen-round(dx/2.),ycen-round(dy/2.),dx,dy,/uncomp_delete
 
-   endif else begin
-       cimg=cimg1
+        endif else begin
+	    cimg=cimg1
 
 ; Read Magnetic image
-       if domread then read_sdo,mfname,mindex,mimg,/uncomp_delete
-   endelse
-   if (anytim2tai(cindex.date_obs)-anytim2tai(mindex.date_obs) gt 30 ) then begin
+;       if domread then read_sdo,mfname,mindex,mimg,/uncomp_delete
+;Note by Sr: This is already in side doread check, hence commenting above line 
+      	    read_sdo,mfname,mindex,mimg,/uncomp_delete
+        endelse
+        if (anytim2tai(cindex.date_obs)-anytim2tai(mindex.date_obs) gt 30 ) then begin
+            print,"ERROR:Continuum and Magnetic images are not simultaneous"
+       	    return,0
+        endif
 
-       print,"ERROR:Continuum and Magnetic images are not simultaneous"
-       ;str1.comment="ERR:C- M imgs not simultaneous"
-       ;str1.chk=0
-       return,0
-   endif
-
-   if cindex.crota2 ge 175. and cindex.crota2 le 185. then begin
-        cimg=rotate(cimg,2)
-        cindex.crpix1 = cindex.naxis1 - cindex.crpix1 + 1
-        cindex.crpix2 = cindex.naxis2 - cindex.crpix2 + 1
-        ;cindex.crota2 = cindex.crota2 - 180
-        cindex.crota2 = 0.0
-	a=(cindex.crota2)
-	cindex.xcen=cindex.CRVAL1 + cindex.CDELT1*cos(a)*((cindex.NAXIS1+1)/2 $
-	    	-cindex.CRPIX1) -cindex.CDELT2*sin(a)*((cindex.NAXIS2+1)/2 $
+    	if cindex.crota2 ge 175. and cindex.crota2 le 185. then begin
+            cimg=rotate(cimg,2)
+            cindex.crpix1 = cindex.naxis1 - cindex.crpix1 + 1
+            cindex.crpix2 = cindex.naxis2 - cindex.crpix2 + 1
+            ;cindex.crota2 = cindex.crota2 - 180
+            cindex.crota2 = 0.0
+	    a=(cindex.crota2)
+	    cindex.xcen=cindex.CRVAL1 + cindex.CDELT1*cos(a)*((cindex.NAXIS1+1)/2 $
+	      -cindex.CRPIX1) -cindex.CDELT2*sin(a)*((cindex.NAXIS2+1)/2 $
 		-cindex.CRPIX2)
-	cindex.ycen= cindex.CRVAL2 + cindex.CDELT1*sin(a)*((cindex.NAXIS1+1)/2 $
-	    	- cindex.CRPIX1) + cindex.CDELT2*cos(a)*((cindex.NAXIS2+1)/2 $
+	    cindex.ycen= cindex.CRVAL2 + cindex.CDELT1*sin(a)*((cindex.NAXIS1+1)/2 $
+	      - cindex.CRPIX1) + cindex.CDELT2*cos(a)*((cindex.NAXIS2+1)/2 $
 		- cindex.CRPIX2)
-   endif
+	endif
 
-   if mindex.crota2 ge 170. then begin
-        mimg=rotate(mimg,2)
-        mindex.crpix1 = mindex.naxis1 - mindex.crpix1 + 1
-        mindex.crpix2 = mindex.naxis2 - mindex.crpix2 + 1
-        ;mindex.crota2 = mindex.crota2 - 180
-        mindex.crota2 = 0.
-	a=mindex.crota2
-	mindex.xcen=mindex.CRVAL1 + mindex.CDELT1*cos(a)*((mindex.NAXIS1+1)/2 $
-	    	-mindex.CRPIX1) -mindex.CDELT2*sin(a)*((mindex.NAXIS2+1)/2 $
+   	if mindex.crota2 ge 170. then begin
+            mimg=rotate(mimg,2)
+            mindex.crpix1 = mindex.naxis1 - mindex.crpix1 + 1
+            mindex.crpix2 = mindex.naxis2 - mindex.crpix2 + 1
+            ;mindex.crota2 = mindex.crota2 - 180
+            mindex.crota2 = 0.
+	    a=mindex.crota2
+	    mindex.xcen=mindex.CRVAL1 + mindex.CDELT1*cos(a)*((mindex.NAXIS1+1)/2 $
+	      -mindex.CRPIX1) -mindex.CDELT2*sin(a)*((mindex.NAXIS2+1)/2 $
 		-mindex.CRPIX2)
-	mindex.ycen= mindex.CRVAL2 + mindex.CDELT1*sin(a)*((mindex.NAXIS1+1)/2 $
-	    	- mindex.CRPIX1) + mindex.CDELT2*cos(a)*((mindex.NAXIS2+1)/2 $
+	    mindex.ycen= mindex.CRVAL2 + mindex.CDELT1*sin(a)*((mindex.NAXIS1+1)/2 $
+	      - mindex.CRPIX1) + mindex.CDELT2*cos(a)*((mindex.NAXIS2+1)/2 $
 		- mindex.CRPIX2)
-	   
+
+    	endif
+
     endif
 
-endif
+    wcs=fitshead2wcs(cindex)
+    coord=wcs_get_coord(wcs)
+    wcs_convert_from_coord,wcs,coord,'hg',lon,lat
 
-   wcs=fitshead2wcs(cindex)
-   coord=wcs_get_coord(wcs)
-   wcs_convert_from_coord,wcs,coord,'hg',lon,lat
+     index2map,cindex,round(cimg),cmap
+     index2map,mindex,float(mimg),mmap
+     index2map,cindex,byte(cimg),mskmap
+     datasz=size(cimg,/dim)
+     imgcenpx=round(datasz/2)-1
 
-   index2map,cindex,round(cimg),cmap
-   index2map,mindex,float(mimg),mmap
-   index2map,cindex,byte(cimg),mskmap
-   datasz=size(cimg,/dim)
-   imgcenpx=round(datasz/2)-1
-
-   ; OUTPUT STR Def.
-    str1={unbmax:0d, unbmin:0d, unbmean:0d,upbmax:0d, upbmin:0d, upbmean:0d, $
-    tnegflx:0d,tposflx:0d,unegflx:0d, uposflx:0d,$
-    wcs:wcs,mfname:mfname,cfname:cfname,$
-    ndelta:0d,dltcen:fltarr(2,expdndelta),dltcenpx:intarr(2,expdndelta),dltunflx:dblarr(expdndelta),$
-    dltupflx:dblarr(expdndelta),cmap:cmap,mmap:mmap,dltmap:mskmap,mskmap:mskmap,$
-    comment:' ',chk:0d }
-
-
-return,str1
+     ; OUTPUT STR Def.
+      str1={unbmax:0d, unbmin:0d, unbmean:0d,upbmax:0d, upbmin:0d, upbmean:0d, $
+        tnegflx:0d,tposflx:0d,unegflx:0d, uposflx:0d,$
+        wcs:wcs,mfname:mfname,cfname:cfname,$
+	ndelta:0d,dltcen:fltarr(2,expdndelta),dltcenpx:intarr(2,expdndelta),dltunflx:dblarr(expdndelta),$
+	dltupflx:dblarr(expdndelta),cmap:cmap,mmap:mmap,dltmap:mskmap,mskmap:mskmap,$
+    	comment:' ',chk:0d }
 
 ;; Call umbsel function to select umbral and penumbral pixels
-   mask=umbsel(cimg,mimg,uilevel,umlevel,pilevel,pmlevel)
-   str1.mskmap.data=mask
+    mask=umbsel(cimg,mimg,uilevel,umlevel,pilevel,pmlevel)
+    str1.mskmap.data=mask
 
-   umbselp=where(mask eq 200)
-   umbseln=where(mask eq 50)
-   pumbsel=where(mask eq 150)
+    umbselp=where(mask eq 200)
+    umbseln=where(mask eq 50)
+    pumbsel=where(mask eq 150)
 
-   if umbselp[0] eq -1 then begin
+    if umbselp[0] eq -1 then begin
 ;	print,"No Positive polarity umbra in the FOV"
 	str1.comment= "No Positive polarity umbra in the FOV"
         str1.chk=0
 	return,str1
-   endif else begin
-   mskup=float(cimg*0.)
-   mskup[umbselp]=1.
-   endelse
-   if umbseln[0] eq -1 then begin
+    endif else begin
+    	mskup=float(cimg*0.)
+    	mskup[umbselp]=1.
+    endelse
+    if umbseln[0] eq -1 then begin
 	;print,"No Negative polarity umbra in the FOV"
 	str1.comment="No Negative polarity umbra in the FOV"
         str1.chk=0
 	return,str1
-   endif else begin
-   mskun=float(cimg*0.)
-   mskun[umbseln]=1.
-   endelse
+    endif else begin
+   	mskun=float(cimg*0.)
+   	mskun[umbseln]=1.
+    endelse
 
-   if pumbsel[0] eq -1 then begin
+    if pumbsel[0] eq -1 then begin
 	;print,"No Penumbra in the FOV"
 	str1.comment="No Penumbra in the FOV"
         str1.chk=0
 	return,str1
-   endif else begin
+    endif else begin
         mskp=float(cimg*0.)
         mskp[pumbsel]=1.
-   endelse
+    endelse
 ; Label umbrae
-   mskunl=label_region(mskun)
-   mskupl=label_region(mskup)
-   unpix=histogram(mskunl,bin=1,loc=unind)
-   uppix=histogram(mskupl,bin=1,loc=upind)
-   rankn = reverse(unind[sort(unpix)])
-   rankp = reverse(upind[sort(uppix)])
+    mskunl=label_region(mskun)
+    mskupl=label_region(mskup)
+    unpix=histogram(mskunl,bin=1,loc=unind)
+    uppix=histogram(mskupl,bin=1,loc=upind)
+    rankn = reverse(unind[sort(unpix)])
+    rankp = reverse(upind[sort(uppix)])
 ; Only umbrae larger than minusize is used
-   sz1=max(where(unpix[rankn] ge minusize))
-   sz2=max(where(uppix[rankp] ge minusize))
-   print,sz1,sz2
-   if sz1 eq 0 then begin
-       ;print," No negative umbra with minium required size"
-       str1.comment=" No negative umbra with minium size"
+    sz1=max(where(unpix[rankn] ge minusize))
+    sz2=max(where(uppix[rankp] ge minusize))
+    print,sz1,sz2
+    if sz1 eq 0 then begin
+	;print," No negative umbra with minium required size"
+        str1.comment=" No negative umbra with minium size"
         str1.chk=0
 	return,str1
-   endif
-   if sz2 eq 0 then begin
-       str1.comment=" No positive umbra with minium size"
+    endif
+    if sz2 eq 0 then begin
+        str1.comment=" No positive umbra with minium size"
         str1.chk=0
 	return,str1
        ;print," No positive umbra with minium required size"
-   endif
+    endif
 ;Ordering the label as per rank
    mskupord=cimg*0.
    mskunord=cimg*0.
