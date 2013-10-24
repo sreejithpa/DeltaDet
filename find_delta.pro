@@ -64,8 +64,8 @@ function umbsel,cimg,mimg,uilevel,umlevel,pilevel,pmlevel
    pumbsel=where(abs(mimg) ge pmlevel[0] and abs(mimg) le pmlevel[1] and $
        		cimgn le pilevel[1] and cimgn gt pilevel[0])
    if n_elements(umbselp) gt 1 then mask(umbselp)=200
-   if n_elements(umbselp) gt 1 then mask(umbseln)=50
-   if n_elements(umbselp) gt 1 then mask(pumbsel)=150
+   if n_elements(umbseln) gt 1 then mask(umbseln)=50
+   if n_elements(pumbsel) gt 1 then mask(pumbsel)=150
 return,mask
 end
 
@@ -108,6 +108,7 @@ pxcmsq=cindex.cdelt1*cindex.cdelt2*700e5*700e5
 	   fov=0 & dfov=0 & center=0
       endif
       if n_elements(xrange) eq 2 and n_elements(yrange) eq 2 then begin
+	  print,'range1=',xrange,yrange
 	  xrange1=(float(xrange)/cindex.cdelt1)+cindex.crpix1
           yrange1=(float(yrange)/cindex.cdelt2)+cindex.crpix2
 	  if (cindex.crota2 gt 170) then begin
@@ -118,6 +119,7 @@ pxcmsq=cindex.cdelt1*cindex.cdelt2*700e5*700e5
 	      abs(round((xrange1[1]-xrange1[0]))),abs(round((yrange1[1]-yrange1[0])))]
       endif
   endelse
+print,'rang2=',xrange1, yrange1
 
    if n_elements(roi) eq 4 then begin
       xcen=round(roi[0]) & ycen=round(roi[1]) & dx = round(roi[2]) & dy = round(roi[3])
@@ -130,29 +132,35 @@ pxcmsq=cindex.cdelt1*cindex.cdelt2*700e5*700e5
        cimg=cimg1
        read_sdo,mfname,mindex,mimg,/uncomp_delete
    endelse
+   if (anytim2tai(cindex.date_obs)-anytim2tai(mindex.date_obs) gt 30 ) then begin
 
-   if cindex.crota2 ge 170. then begin
+       print,"ERROR:Continuum and Magnetic images are not simultaneous"
+       ;str1.comment="ERR:C- M imgs not simultaneous"
+       ;str1.chk=0
+       return,0
+   endif
+
+   if cindex.crota2 ge 175. and cindex.crota2 le 185. then begin
         cimg=rotate(cimg,2)
         cindex.crpix1 = cindex.naxis1 - cindex.crpix1 + 1
         cindex.crpix2 = cindex.naxis2 - cindex.crpix2 + 1
-        cindex.crota2 = cindex.crota2 - 180
-	a=cindex.crota2
+        ;cindex.crota2 = cindex.crota2 - 180
+        cindex.crota2 = 0.0
+	a=(cindex.crota2)
 	cindex.xcen=cindex.CRVAL1 + cindex.CDELT1*cos(a)*((cindex.NAXIS1+1)/2 $
 	    	-cindex.CRPIX1) -cindex.CDELT2*sin(a)*((cindex.NAXIS2+1)/2 $
 		-cindex.CRPIX2)
 	cindex.ycen= cindex.CRVAL2 + cindex.CDELT1*sin(a)*((cindex.NAXIS1+1)/2 $
 	    	- cindex.CRPIX1) + cindex.CDELT2*cos(a)*((cindex.NAXIS2+1)/2 $
 		- cindex.CRPIX2)
-
    endif
 
    if mindex.crota2 ge 170. then begin
         mimg=rotate(mimg,2)
         mindex.crpix1 = mindex.naxis1 - mindex.crpix1 + 1
         mindex.crpix2 = mindex.naxis2 - mindex.crpix2 + 1
-	mindex.xcen=-mindex.xcen
-	mindex.ycen=-mindex.ycen
-        mindex.crota2 = mindex.crota2 - 180
+        ;mindex.crota2 = mindex.crota2 - 180
+        mindex.crota2 = 0.
 	a=mindex.crota2
 	mindex.xcen=mindex.CRVAL1 + mindex.CDELT1*cos(a)*((mindex.NAXIS1+1)/2 $
 	    	-mindex.CRPIX1) -mindex.CDELT2*sin(a)*((mindex.NAXIS2+1)/2 $
@@ -160,6 +168,7 @@ pxcmsq=cindex.cdelt1*cindex.cdelt2*700e5*700e5
 	mindex.ycen= mindex.CRVAL2 + mindex.CDELT1*sin(a)*((mindex.NAXIS1+1)/2 $
 	    	- mindex.CRPIX1) + mindex.CDELT2*cos(a)*((mindex.NAXIS2+1)/2 $
 		- mindex.CRPIX2)
+	   
     endif
 
    wcs=fitshead2wcs(cindex)
@@ -181,13 +190,7 @@ pxcmsq=cindex.cdelt1*cindex.cdelt2*700e5*700e5
     comment:' ',chk:0d }
 
 
-   if (anytim2tai(cindex.date_obs)-anytim2tai(mindex.date_obs) gt 30 ) then begin
-
-       ;print,"ERROR:Continuum and Magnetic images are not simultaneous"
-       str1.comment="ERR:C- M imgs not simultaneous"
-       str1.chk=0
-       return,str1
-   endif
+return,str1
 
 ;; Call umbsel function to select umbral and penumbral pixels
    mask=umbsel(cimg,mimg,uilevel,umlevel,pilevel,pmlevel)
@@ -225,7 +228,6 @@ pxcmsq=cindex.cdelt1*cindex.cdelt2*700e5*700e5
         mskp=float(cimg*0.)
         mskp[pumbsel]=1.
    endelse
-
 ; Label umbrae
    mskunl=label_region(mskun)
    mskupl=label_region(mskup)

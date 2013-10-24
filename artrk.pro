@@ -1,7 +1,7 @@
 ; IDL procedure by Sreejith
 
 ; Start		: 25 Jun 2013 12:24
-; Last Mod 	: 21 Oct 2013 16:02
+; Last Mod 	: 23 Oct 2013 23:08
 
 ;-------------------  Details of the program --------------------------;
 ;PRO delta
@@ -72,7 +72,9 @@ pro artrk,indirc,indirm,ostrarr,$
 	center=[rmap.xc,rmap.yc]
 	print,nxrange,nyrange
 	tmp=min(abs(mtime-ctime[ii]),minpos)
+;	stop
 	ostr=find_delta(cfnames[ii],mfnames[minpos],xrange=nxrange,yrange=nyrange)
+;	stop
 	ostrarr[ii]=ostr
 	if (keyword_set(plotmap)) then begin
 	    device,decomposed=0
