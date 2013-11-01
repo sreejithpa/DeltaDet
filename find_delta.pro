@@ -88,7 +88,7 @@ function find_delta,cfname,mfname,roi=inroi,fov=fov,center=center,$
     		xrange=xrange,yrange=yrange, $
                 cimg=incimg, cindex=incindex, mimg=inmimg, mindex=inmindex
 print,systim()
-
+   version='1.0.0'
    distdeg=2.0		;Distance between opp. polarity umbra (defenition of
    			;delta condition)
    minusize=10		; Minimum size of umbra to be considered in pixel
@@ -101,6 +101,9 @@ print,systim()
    pshare=5		;common penumbra sharing in pixels
    pesz=10		;size of expected penumbra in pixels
 
+   params={version:version,distdeg:distdeg,minusize:minusize,expdndelta:expdndelta,$
+       	     uilevel:uilevel,umlevel:umlevel,pilevel:pilevel,pmlevel:pmlevel,pfr:pfr,$
+	     pshare:pshare,pesz:pesz}
 ;Determine if filename or image+index is to be used as input
        if n_elements(cfname) eq 1 and n_elements(mfname) eq 1 then doread=1 else doread=0
        if doread then print,'DOREAD=1: Using Mag. and Int. filenames as input' else print,'DOREAD=0: Using image arrays, indexes, and coord arrays as input'
@@ -224,16 +227,15 @@ print,systim()
      datasz=size(cimg,/dim)
      imgcenpx=round(datasz/2)-1
      ;Structure that gives database of umbra satisfying condition one and two.
-     dbstr={up:0d,un:0d,dltpos:bytarr(200,200),distar:fltarr(200,200),pfrar:fltarr(200,200),$
-	 uppos:fltarr(2,200),unpos:fltarr(2,200)}
+     dbstr={up:0d,un:0d,dltpos:bytarr(200,200),distar:fltarr(200,200),pfrnar:fltarr(200,200),$
+	 pfrpar:fltarr(200,200),pshar:fltarr(200,200),uppos:fltarr(2,200),unpos:fltarr(2,200)}
      ; OUTPUT STR Def.
       str1={unbmax:0d, unbmin:0d, unbmean:0d,upbmax:0d, upbmin:0d, upbmean:0d, $
         tnegflx:0d,tposflx:0d,unegflx:0d, uposflx:0d,$
         wcs:wcs,mfname:mfname,cfname:cfname,$
 	ndelta:0d,dltcen:fltarr(2,expdndelta),dltcenpx:intarr(2,expdndelta),dltunflx:dblarr(expdndelta),$
 	dltupflx:dblarr(expdndelta),cmap:cmap,mmap:mmap,dltmap:mskmap,mskmap:mskmap,$
-    	comment:' ',chk:0d,dbstr:dbstr}
-
+    	comment:' ',chk:0d,dbstr:dbstr,params:params}
 ;; Call umbsel function to select umbral and penumbral pixels
     mask=umbsel(cimg,mimg,uilevel,umlevel,pilevel,pmlevel)
     str1.mskmap.data=mask
@@ -312,7 +314,9 @@ print,systim()
 
    deltapos=bytarr(szn,szp)
    distar1=fltarr(szn,szp)
-   pfrar1=fltarr(szn,szp)
+   pfrnar1=fltarr(szn,szp)
+   pfrpar1=fltarr(szn,szp)
+   pshar1=fltarr(szn,szp)
    dp=fltarr(szp)
    dn=fltarr(szn)
    cenp=fltarr(2,szp)
@@ -350,11 +354,16 @@ print,systim()
 			pen=where((mskuns1-mskuns) gt 0.)
 			match,pop,pon,subpop,subpon,count=cnt
 
+			pshar1[ii-1,jj-1]=cnt
 			pfrp=float(size(pop,/dim))/float(size(pep,/dim))
 			pfrn=float(size(pon,/dim))/float(size(pen,/dim))
-			pfrar1[ii-1,jj-1]=(pfrn+pfrp)/2.
-			if (pfrn+pfrp) gt pfr*2. and cnt ge pshare then begin
-			   ; print,'one',ii,jj,dp[jj-1],dn[ii-1],ndelta
+			pfrnar1[ii-1,jj-1]=pfrn
+			pfrpar1[ii-1,jj-1]=pfrp
+			if (pfrn gt pfr and pfrp gt pfr and cnt ge pshare) then begin
+			    ;NOTE: Modified pfrn and pfrp gt pfr individually, instead
+			    ;of (pfrn+pfrp)>2*pfr earlier as per telecon on 21oct
+
+			    ; print,'one',ii,jj,dp[jj-1],dn[ii-1],ndelta
 
 			    if dp[jj-1] eq 0 and dn[ii-1] eq 0 then begin
 				ndelta++
@@ -364,7 +373,8 @@ print,systim()
 	    		    endif else begin
 				mndlt=min([dp[jj-1],dn[ii-1]])
 				mxdlt=max([dp[jj-1],dn[ii-1]])
-				if dp[jj-1] eq 0. or dn[ii-1] eq 0 then begin
+
+		if dp[jj-1] eq 0. or dn[ii-1] eq 0 then begin
 				    dp[jj-1]=mxdlt
 			            dn[ii-1]=mxdlt
 				endif else begin
@@ -395,7 +405,9 @@ print,systim()
        str1.dbstr.uppos[*,0:szp-1]=cenp[*,*]
        str1.dbstr.unpos[*,0:szn-1]=cenn[*,*]
        str1.dbstr.distar[0:szn-1,0:szp-1]=distar1[*,*]
-       str1.dbstr.pfrar[0:szn-1,0:szp-1]=pfrar1[*,*]
+       str1.dbstr.pfrnar[0:szn-1,0:szp-1]=pfrnar1[*,*]
+       str1.dbstr.pfrpar[0:szn-1,0:szp-1]=pfrpar1[*,*]
+       str1.dbstr.pshar[0:szn-1,0:szp-1]=pshar1[*,*]
    endif
 
  if ndelta ge 1 then begin
@@ -419,18 +431,19 @@ print,systim()
 	str1.dltupflx[ii]=total(mimg(tp))*pxcmsq
    endfor
  endif
-	str1.unbmax=max(abs(mimg(umbseln)))  ; Max Negative umbrae
-	str1.unbmin=min(abs(mimg(umbseln)))
-	str1.unbmean=mean(abs(mimg(umbseln)))
-	str1.upbmax=max(abs(mimg(umbselp)))  ; Max of Positive umbrae
-	str1.upbmin=min(abs(mimg(umbselp)))
-	str1.upbmean=mean(abs(mimg(umbselp)))
-	str1.tnegflx=total(mimg<0.)*pxcmsq
-	str1.tposflx=total(mimg>0.)*pxcmsq
-	str1.unegflx=total(mimg(umbseln))*pxcmsq
-	str1.uposflx=total(mimg(umbselp))*pxcmsq
-	str1.chk=1
-	str1.comment='Successfull- relevent informations are saved in this strcutre'
+   str1.unbmax=max(abs(mimg(umbseln)))  ; Max Negative umbrae
+   str1.unbmin=min(abs(mimg(umbseln)))
+   str1.unbmean=mean(abs(mimg(umbseln)))
+   str1.upbmax=max(abs(mimg(umbselp)))  ; Max of Positive umbrae
+   str1.upbmin=min(abs(mimg(umbselp)))
+   str1.upbmean=mean(abs(mimg(umbselp)))
+   str1.tnegflx=total(mimg<0.)*pxcmsq
+   str1.tposflx=total(mimg>0.)*pxcmsq
+   str1.unegflx=total(mimg(umbseln))*pxcmsq
+   str1.uposflx=total(mimg(umbselp))*pxcmsq
+   str1.chk=1
+   str1.comment='Successful: '+string(ndelta)+' deltas found'
+
 outstr=str1
 print,systim()
 return,outstr
