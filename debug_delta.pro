@@ -17,7 +17,7 @@ PRO debug_delta_print, instring, filename=filename
 ; CALLING SEQUENCE:
 ;       debug_delta_print, 'blah',filename='blah.txt'
 if n_elements(filename) eq 1 then begin
-   openw, lun, filename,/get_lun
+   openw, lun, filename,/get_lun,/append
    PRINTF, lun, instring 
    close,/all
 endif else print,instring
