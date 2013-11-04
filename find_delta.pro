@@ -88,7 +88,7 @@ function find_delta,cfname,mfname,roi=inroi,fov=fov,center=center,$
     		xrange=xrange,yrange=yrange, $
                 cimg=incimg, cindex=incindex, mimg=inmimg, mindex=inmindex
 print,systim()
-   version='1.0.0'
+   version='1.0.1'
    distdeg=2.0		;Distance between opp. polarity umbra (defenition of
    			;delta condition)
    minusize=10		; Minimum size of umbra to be considered in pixel
