@@ -221,7 +221,7 @@ print,systim()
     coord=wcs_get_coord(wcs)
     wcs_convert_from_coord,wcs,coord,'hg',lon,lat
 
-     index2map,cindex,round(cimg),cmap
+     index2map,cindex,cimg,cmap
      index2map,mindex,float(mimg),mmap
      index2map,cindex,byte(cimg),mskmap
      datasz=size(cimg,/dim)
