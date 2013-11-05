@@ -97,7 +97,7 @@ print,systim()
    umlevel=[500,7000]	; Magnetic levels to choose umbra
    pilevel=[0.7,0.9]	; Intensity levels to choose Penumbra
    pmlevel=[50,7000]	; Magnetic levels to choose Penumbra
-   pfr=0.6		; penumbra fraction p_obs/p_exp
+   pfr=0.5		; penumbra fraction p_obs/p_exp
    pshare=5		;common penumbra sharing in pixels
    pesz=10		;size of expected penumbra in pixels
 
