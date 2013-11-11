@@ -392,7 +392,7 @@ print,systim()
 					tmp=where(dn gt ndelta)
 					if tmp[0] ne -1 then dn[tmp]=dn[tmp]-1
 				    endif
-				   
+
 				endelse
 				;print,'thre',ii,jj,dp[jj-1],dn[ii-1],ndelta
 	    		    endelse
@@ -434,11 +434,14 @@ print,systim()
 	sdn1=size(dn1,/dim)
 	for kk=0,sdn1[0]-1 do begin
 		tn=where(mskunord eq (dn1[kk]+1))
+		mskdelta(tn)=128-ii-1
+	    ;   mskdelta(pon)=100.
+	endfor
+	sdp1=size(dp1,/dim)
+	for kk=0,sdp1[0]-1 do begin
 		tp=where(mskupord eq (dp1[kk]+1))
 		mskdelta(tp)=128+ii+1
 	    ;   mskdelta(pop)=150.
-		mskdelta(tn)=128-ii-1
-	    ;   mskdelta(pon)=100.
 	endfor
 	tn=where(mskdelta eq 128-(ii+1))
 	tp=where(mskdelta eq 128+(ii+1))
