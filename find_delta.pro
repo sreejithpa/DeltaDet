@@ -363,36 +363,44 @@ print,systim()
 			    ;NOTE: Modified pfrn and pfrp gt pfr individually, instead
 			    ;of (pfrn+pfrp)>2*pfr earlier as per telecon on 21oct
 
-			    ; print,'one',ii,jj,dp[jj-1],dn[ii-1],ndelta
+			     ;print,'one',ii,jj,dp[jj-1],dn[ii-1],ndelta
 
 			    if dp[jj-1] eq 0 and dn[ii-1] eq 0 then begin
 				ndelta++
 				dp[jj-1]=ndelta
 				dn[ii-1]=ndelta
-		;		print,'two',ii,jj,dp[jj-1],dn[ii-1],ndelta
+				;print,'two',ii,jj,dp[jj-1],dn[ii-1],ndelta
 	    		    endif else begin
 				mndlt=min([dp[jj-1],dn[ii-1]])
 				mxdlt=max([dp[jj-1],dn[ii-1]])
 
-		if dp[jj-1] eq 0. or dn[ii-1] eq 0 then begin
+				if dp[jj-1] eq 0. or dn[ii-1] eq 0 then begin
 				    dp[jj-1]=mxdlt
 			            dn[ii-1]=mxdlt
 				endif else begin
-				    if dp[jj-1] ne dn[ii-1] then ndelta=ndelta-1
-				    dp[jj-1]=mndlt
-				    dn[ii-1]=mndlt
-				    tmp=where(dp eq mxdlt)
-			            if tmp[0] ne -1 then dp[tmp]=mndlt
-				    tmp=where(dn eq mxdlt)
-			            if tmp[0] ne -1 then dn[tmp]=mndlt
+				    if dp[jj-1] ne dn[ii-1] then begin
+					ndelta=ndelta-1
+
+				    	dp[jj-1]=mndlt
+				    	dn[ii-1]=mndlt
+				    	tmp=where(dp eq mxdlt)
+			            	if tmp[0] ne -1 then dp[tmp]=mndlt
+				    	tmp=where(dn eq mxdlt)
+			            	if tmp[0] ne -1 then dn[tmp]=mndlt
+					tmp=where(dp gt ndelta)
+					if tmp[0] ne -1 then dp[tmp]=dp[tmp]-1
+					tmp=where(dn gt ndelta)
+					if tmp[0] ne -1 then dn[tmp]=dn[tmp]-1
+				    endif
+				   
 				endelse
-		;		print,'thre',ii,jj,dp[jj-1],dn[ii-1],ndelta
+				;print,'thre',ii,jj,dp[jj-1],dn[ii-1],ndelta
 	    		    endelse
-		;		print,'four',ii,jj,dp[jj-1],dn[ii-1],ndelta
+				;print,'four',ii,jj,dp[jj-1],dn[ii-1],ndelta
 			    deltapos[ii-1,jj-1]=2  ;Condition 2 satisfied
-			    mskdelta(tp)=128+dp[jj-1]
+			;    mskdelta(tp)=128+dp[jj-1]
 			;   mskdelta(pop)=150.
-			    mskdelta(tn)=128-dn[ii-1]
+			 ;   mskdelta(tn)=128-dn[ii-1]
 			;   mskdelta(pon)=100.
 
 			endif
@@ -413,7 +421,6 @@ print,systim()
  if ndelta ge 1 then begin
 ;Flux of delta forming umbrae
    str1.ndelta=ndelta
-   str1.dltmap.data=mskdelta
 ;stop
    for ii=0,ndelta-1 do begin
 
@@ -424,12 +431,22 @@ print,systim()
 	str1.dltcenpx[0,ii]=dltcenx & str1.dltcenpx[1,ii]=dltceny
 	str1.dltcen[0,ii]=cmap.xc+(dltcenx-imgcenpx[0])*cmap.dx	;arc seconds
 	str1.dltcen[1,ii]=cmap.yc+(dltceny-imgcenpx[1])*cmap.dy ;arc seconds
+	sdn1=size(dn1,/dim)
+	for kk=0,sdn1[0]-1 do begin
+		tn=where(mskunord eq (dn1[kk]+1))
+		tp=where(mskupord eq (dp1[kk]+1))
+		mskdelta(tp)=128+ii+1
+	    ;   mskdelta(pop)=150.
+		mskdelta(tn)=128-ii-1
+	    ;   mskdelta(pon)=100.
+	endfor
 	tn=where(mskdelta eq 128-(ii+1))
 	tp=where(mskdelta eq 128+(ii+1))
 	;if tn[0] eq -1 then continue
 	str1.dltunflx[ii]=total(mimg(tn))*pxcmsq
 	str1.dltupflx[ii]=total(mimg(tp))*pxcmsq
    endfor
+   str1.dltmap.data=mskdelta
  endif
    str1.unbmax=max(abs(mimg(umbseln)))  ; Max Negative umbrae
    str1.unbmin=min(abs(mimg(umbseln)))

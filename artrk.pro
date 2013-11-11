@@ -1,7 +1,7 @@
 ; IDL procedure by Sreejith
 
 ; Start		: 25 Jun 2013 12:24
-; Last Mod 	: 24 Oct 2013 22:41
+; Last Mod 	: 11 Nov 2013 20:36
 
 ;-------------------  Details of the program --------------------------;
 ;PRO delta
@@ -44,7 +44,6 @@ pro artrk,indirc,indirm,ostrarr,$
    ostrarr=replicate(ostr,ss)
    ostrarr[0]=ostr
    for ii=1,ss-1 do begin
-
 	rmap=drot_map(ostr.cmap,time=cindex[ii].date_obs)
 	nxrange=get_map_xrange(rmap,/edge)
 	nyrange=get_map_yrange(rmap,/edge)
