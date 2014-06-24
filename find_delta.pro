@@ -93,9 +93,9 @@ print,systim()
    			;delta condition)
    minusize=10		; Minimum size of umbra to be considered in pixel
    expdndelta=30	; Expected number of delta (max 127, using Byte array)
-   uilevel=[0,0.7]	;Intensity levels to choose umbra
+   uilevel=[0,0.6]	;Intensity levels to choose umbra
    umlevel=[500,7000]	; Magnetic levels to choose umbra
-   pilevel=[0.7,0.9]	; Intensity levels to choose Penumbra
+   pilevel=[0.6,0.9]	; Intensity levels to choose Penumbra
    pmlevel=[50,7000]	; Magnetic levels to choose Penumbra
    pfr=0.5		; penumbra fraction p_obs/p_exp
    pshare=5		;common penumbra sharing in pixels

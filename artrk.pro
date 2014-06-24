@@ -1,7 +1,7 @@
 ; IDL procedure by Sreejith
 
 ; Start		: 25 Jun 2013 12:24
-; Last Mod 	: 11 Nov 2013 20:36
+; Last Mod 	: 28 Nov 2013 19:50
 
 ;-------------------  Details of the program --------------------------;
 ;PRO delta
@@ -44,6 +44,7 @@ pro artrk,indirc,indirm,ostrarr,$
    ostrarr=replicate(ostr,ss)
    ostrarr[0]=ostr
    for ii=1,ss-1 do begin
+;   for ii=206,206 do begin
 	rmap=drot_map(ostr.cmap,time=cindex[ii].date_obs)
 	nxrange=get_map_xrange(rmap,/edge)
 	nyrange=get_map_yrange(rmap,/edge)
@@ -54,7 +55,9 @@ pro artrk,indirc,indirm,ostrarr,$
 ;	stop
 	ostr=find_delta(cfnames[ii],mfnames[minpos],xrange=nxrange,yrange=nyrange)
 ;	stop
-	ostrarr[ii]=ostr
+	if data_type(ostr) eq 8 then begin 
+	    ostrarr[ii]=ostr
+
 	if (keyword_set(plotmap)) then begin
 	    device,decomposed=0
 	    set_plot,'x'
@@ -92,6 +95,12 @@ pro artrk,indirc,indirm,ostrarr,$
 		plot_map,ostr.dltmap,/over,/cont,levels=[126,127,128,129,130],c_color=[30,30,30,10,10],c_thick=2.0
 	    endif
 	endif
+	    endif else begin
+		ostrarr[ii].cmap.data=ostrarr[ii].cmap.data*0.
+		ostrarr[ii].mmap.data=ostrarr[ii].mmap.data*0.
+		ostrarr[ii].comment='Error '
+		ostr=ostrarr[ii-1]
+	    endelse
 
    endfor
 	if (keyword_set(mkmovie)) then begin
