@@ -5,7 +5,7 @@ t1=systim(/utc)
 ;Set up parameters---------------------------------->
 
 ;Read in the AR detection parameter file
-fparam='~/Dropbox/IDL/lib/Paul/smart_library/ar_param_hmi.txt'
+fparam='/Users/sreejith/Solar/DeltaDet/ar_param_hmi.txt'
 params=ar_loadparam(fparam=fparam)
 
 ;Input magnetogram
@@ -32,9 +32,8 @@ fyyyy=strmid(fdate,0,4)
 ;Turn on median filtering due to the noise...
 params.DOMEDIANFILT=0
 params.DOCOSMICRAY=0
-
 ;Create AR mask (includes processing of MDI image -> read out into THISPROC)
-thisarstr=ar_detect_core(thismap1k, /nosmart, mapproc=thisproc, params=params, status=status, cosmap=cosmap, limbmask=limbmask,/doprocess)
+thisarstr=ar_detect_core(thismap1k, /nosmart, mapproc=thisproc, params=params,status=status, cosmap=cosmap, limbmask=limbmask,/doprocess)
 
 mask=ar_core2mask(thisarstr.data)
 ;mask=thisarstr.data
