@@ -86,8 +86,8 @@ end
 
 function find_delta,cfname,mfname,roi=inroi,fov=fov,center=center,$
     		xrange=xrange,yrange=yrange, $
-                cimg=incimg, cindex=incindex, mimg=inmimg, mindex=inmindex
-print,systim()
+                cimg=incimg, cindex=incindex, mimg=inmimg, mindex=inmindex,$
+		nolimbdark=nolimbdark
    version='1.0.1'
    distdeg=2.0		;Distance between opp. polarity umbra (defenition of
    			;delta condition)
@@ -125,11 +125,11 @@ print,systim()
 ;Read continuum image
         read_sdo,cfname,cindex,cimg,/uncomp_delete
 ;Do limb correction
-
-        xyr = [ cindex.crpix1, cindex.crpix2, cindex.rsun_obs/cindex.CDELT1 ]
+	if (keyword_set(nolimbdark)) then cimg1=cimg else begin
+	    xyr = [ cindex.crpix1, cindex.crpix2, cindex.rsun_obs/cindex.CDELT1 ]
            darklimb_correct, cimg, cimg1, lambda = cindex.WAVELNTH, limbxyr = xyr
+       endelse
     ;Get the input ROI else find ROI to be used
-
         if n_elements(inroi) eq 4 then roi=inroi else begin
 	    if n_elements(fov) ne 0 then begin
 	        if n_elements(center) eq 2 then center1=float(center) $
@@ -164,6 +164,10 @@ print,systim()
 ;	--Answer to the NOTE: It was done initially, so that index file keywords are
 ;	automatically updated with selected FOV info. Can be avoided by manually
 ;	changing the respective index keywords. Will do that in next version.
+	    if xcen+round(dx/2.) ge 4095 then xcen=4095-round(dx/2.)
+	    if ycen+round(dy/2.) ge 4095 then ycen=4095-round(dy/2.)
+	    if xcen-round(dx/2.) le 0 then xcen=1+round(dx/2.)
+	    if ycen-round(dy/2.) le 0 then ycen=1+round(dy/2.)
        	    read_sdo,cfname,cindex,cimg,xcen-round(dx/2.),ycen-round(dy/2.),dx,dy,/uncomp_delete
 
 ;Take sub image from limb-dark corrected image
@@ -465,7 +469,6 @@ print,systim()
    str1.comment='Successful: '+string(ndelta)+' deltas found'
 
 outstr=str1
-print,systim()
 return,outstr
 end
 

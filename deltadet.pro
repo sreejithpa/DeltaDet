@@ -1,7 +1,7 @@
 ; IDL procedure by Sreejith
 
 ; Start		: 25 Jun 2013 12:24
-; Last Mod 	: 24 Jun 2014 11:43
+; Last Mod 	: 24 Jul 2014 16:25
 
 ;-------------------  Details of the program --------------------------;
 ;PRO delta
@@ -21,7 +21,7 @@ pro deltadet,indirc,indirm,$
     	MKMOVIE=mkmovie,movdir=movdir,MKPLOT=mkplot,plotmap=plotmap,listfname=listfname,savestr=savestr
 
 
-    poslimit=700  ;Consider ARs position less than poslimit; in arcesec
+    poslimit=900  ;Consider ARs position less than poslimit; in arcesec
 
     ;   if n_elements(inroi) ne 0 then begin
  ;      roi=inroi
